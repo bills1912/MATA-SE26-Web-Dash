@@ -255,6 +255,10 @@ export default function Overview({ kecamatanList }) {
   const [p6DetailLoading, setP6DetailLoading] = useState(false);
   const [p6ExpandedKec, setP6ExpandedKec] = useState({}); // { [nmkec]: bool }
 
+  // Paginasi card "Urutan Kecamatan — P6 Tertinggi"
+  const P6_PER_PAGE = 5;
+  const [p6Page, setP6Page] = useState(1);
+
   const [statsRef, statsInView] = useInView(0.1);
   const [chartRef, chartInView] = useInView(0.1);
   const [belumRef, belumInView] = useInView(0.1);
@@ -283,6 +287,7 @@ export default function Overview({ kecamatanList }) {
       // Reset P6 detail saat data utama reload
       setP6Detail({});
       setP6ExpandedKec({});
+      setP6Page(1);
     } catch { }
     setLoading(false); setRefreshing(false);
   };
@@ -700,109 +705,190 @@ export default function Overview({ kecamatanList }) {
               </div>
 
               {/* ── Progress bar per kecamatan + TOGGLE DETAIL PETUGAS ── */}
-              {belumKecData.length > 0 && (
-                <div className="card mb animate-fadein" style={{
-                  animationDelay: '0.15s',
-                  border: '1px solid rgba(244,63,94,0.2)',
-                }}>
-                  <div className="card-head">
-                    <div className="card-title-g">
-                      <div className="c-icon ci-r">🎯</div>
-                      <div>
-                        <div className="c-title">Urutan Kecamatan — P6 Tertinggi</div>
-                        <div className="c-sub">Klik nama kecamatan untuk melihat detail petugas & catatan</div>
+              {belumKecData.length > 0 && (() => {
+                const totalPages = Math.ceil(belumKecData.length / P6_PER_PAGE);
+                const pageStart  = (p6Page - 1) * P6_PER_PAGE;
+                const pageSlice  = belumKecData.slice(pageStart, pageStart + P6_PER_PAGE);
+
+                return (
+                  <div className="card mb animate-fadein" style={{
+                    animationDelay: '0.15s',
+                    border: '1px solid rgba(244,63,94,0.2)',
+                  }}>
+                    {/* ── Card header ── */}
+                    <div className="card-head">
+                      <div className="card-title-g">
+                        <div className="c-icon ci-r">🎯</div>
+                        <div>
+                          <div className="c-title">Urutan Kecamatan — P6 Tertinggi</div>
+                          <div className="c-sub">Klik nama kecamatan untuk melihat detail petugas & catatan</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span className="badge br">{totalBelum.toLocaleString('id-ID')} unit</span>
+                        {p6DetailLoading && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text3)' }}>
+                            <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                            Memuat...
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span className="badge br">{totalBelum.toLocaleString('id-ID')} unit</span>
-                      {p6DetailLoading && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text3)' }}>
-                          <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
-                          Memuat...
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    {belumKecData.map((d, i) => {
-                      const pct = Math.round((d.belum / belumKecData[0].belum) * 100);
-                      const barColor = ROSE_COLORS[i % ROSE_COLORS.length];
-                      const isExpanded = p6ExpandedKec[d.fullName];
-                      const detailRows = p6Detail[d.fullName] || [];
 
-                      return (
-                        <div key={d.fullName} className="animate-fadein" style={{ animationDelay: `${i * 55}ms` }}>
-                          {/* Row progress + tombol toggle */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                            {/* Tombol toggle nama kecamatan */}
-                            <button
-                              onClick={() => toggleP6Kec(d.fullName)}
-                              style={{
-                                display: 'flex', alignItems: 'center', gap: 7,
-                                background: isExpanded ? `${barColor}18` : 'transparent',
-                                border: isExpanded ? `1px solid ${barColor}44` : '1px solid transparent',
-                                borderRadius: 7, padding: '4px 10px 4px 6px',
-                                cursor: 'pointer', fontFamily: 'inherit',
-                                transition: 'all 0.18s',
-                              }}
-                            >
-                              <span style={{
-                                width: 22, height: 22, borderRadius: 6,
-                                background: `${barColor}28`,
-                                border: `1px solid ${barColor}55`,
-                                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 10, fontWeight: 800, color: barColor,
-                                flexShrink: 0,
-                              }}>{i + 1}</span>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{d.fullName}</span>
-                              {/* Chevron */}
-                              <span style={{
-                                fontSize: 10,
-                                color: barColor,
-                                transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                                transition: 'transform 0.2s',
-                                marginLeft: 2,
-                              }}>▼</span>
-                            </button>
+                    {/* ── Daftar kecamatan halaman ini ── */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                      {pageSlice.map((d, idx) => {
+                        const globalIdx  = pageStart + idx;           // urutan asli (untuk nomor & warna)
+                        const pct        = Math.round((d.belum / belumKecData[0].belum) * 100);
+                        const barColor   = ROSE_COLORS[globalIdx % ROSE_COLORS.length];
+                        const isExpanded = p6ExpandedKec[d.fullName];
+                        const detailRows = p6Detail[d.fullName] || [];
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              {/* Hint klik jika belum expand */}
-                              {!isExpanded && (
-                                <span style={{ fontSize: 10, color: 'var(--text3)', fontStyle: 'italic' }}>
-                                  👆 klik untuk detail
+                        return (
+                          <div key={d.fullName} className="animate-fadein" style={{ animationDelay: `${idx * 55}ms` }}>
+                            {/* Row: nomor + tombol toggle + jumlah */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                              <button
+                                onClick={() => toggleP6Kec(d.fullName)}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 7,
+                                  background: isExpanded ? `${barColor}18` : 'transparent',
+                                  border: isExpanded ? `1px solid ${barColor}44` : '1px solid transparent',
+                                  borderRadius: 7, padding: '4px 10px 4px 6px',
+                                  cursor: 'pointer', fontFamily: 'inherit',
+                                  transition: 'all 0.18s',
+                                }}
+                              >
+                                <span style={{
+                                  width: 22, height: 22, borderRadius: 6,
+                                  background: `${barColor}28`,
+                                  border: `1px solid ${barColor}55`,
+                                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                                  fontSize: 10, fontWeight: 800, color: barColor,
+                                  flexShrink: 0,
+                                }}>{globalIdx + 1}</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{d.fullName}</span>
+                                <span style={{
+                                  fontSize: 10, color: barColor,
+                                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                  transition: 'transform 0.2s',
+                                  marginLeft: 2,
+                                }}>▼</span>
+                              </button>
+
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {!isExpanded && (
+                                  <span style={{ fontSize: 10, color: 'var(--text3)', fontStyle: 'italic' }}>
+                                    👆 klik untuk detail
+                                  </span>
+                                )}
+                                <span style={{ fontWeight: 800, color: barColor, fontSize: 13 }}>
+                                  {d.belum.toLocaleString('id-ID')} unit
                                 </span>
-                              )}
-                              <span style={{ fontWeight: 800, color: barColor, fontSize: 13 }}>
-                                {d.belum.toLocaleString('id-ID')} unit
-                              </span>
+                              </div>
                             </div>
-                          </div>
 
-                          {/* Progress bar */}
-                          <div className="pw" style={{ height: 7, borderRadius: 8 }}>
-                            <div style={{
-                              height: '100%',
-                              width: belumInView ? `${pct}%` : '0%',
-                              background: `linear-gradient(90deg,${barColor},${barColor}88)`,
-                              borderRadius: 8,
-                              transition: `width 0.9s cubic-bezier(0.34,1.56,0.64,1) ${i * 60}ms`,
-                            }} />
-                          </div>
+                            {/* Progress bar */}
+                            <div className="pw" style={{ height: 7, borderRadius: 8 }}>
+                              <div style={{
+                                height: '100%',
+                                width: belumInView ? `${pct}%` : '0%',
+                                background: `linear-gradient(90deg,${barColor},${barColor}88)`,
+                                borderRadius: 8,
+                                transition: `width 0.9s cubic-bezier(0.34,1.56,0.64,1) ${idx * 60}ms`,
+                              }} />
+                            </div>
 
-                          {/* Panel detail petugas (collapsible) */}
-                          {isExpanded && (
-                            <P6KecDetail
-                              kecamatan={d.fullName}
-                              data={detailRows}
-                              color={barColor}
-                            />
-                          )}
+                            {/* Panel detail petugas (collapsible) */}
+                            {isExpanded && (
+                              <P6KecDetail
+                                kecamatan={d.fullName}
+                                data={detailRows}
+                                color={barColor}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* ── Kontrol paginasi ── */}
+                    {totalPages > 1 && (
+                      <div style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        marginTop: 18, paddingTop: 14,
+                        borderTop: '1px solid rgba(244,63,94,0.15)',
+                        gap: 8, flexWrap: 'wrap',
+                      }}>
+                        {/* Info halaman */}
+                        <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
+                          Halaman <strong style={{ color: 'var(--text2)' }}>{p6Page}</strong> dari <strong style={{ color: 'var(--text2)' }}>{totalPages}</strong>
+                          &nbsp;·&nbsp;
+                          {pageStart + 1}–{Math.min(pageStart + P6_PER_PAGE, belumKecData.length)} dari {belumKecData.length} kecamatan
+                        </span>
+
+                        {/* Tombol navigasi */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {/* Prev */}
+                          <button
+                            disabled={p6Page === 1}
+                            onClick={() => { setP6Page(p => p - 1); setP6ExpandedKec({}); }}
+                            style={{
+                              width: 32, height: 32, borderRadius: 7,
+                              border: '1px solid rgba(244,63,94,0.25)',
+                              background: p6Page === 1 ? 'transparent' : 'rgba(244,63,94,0.08)',
+                              color: p6Page === 1 ? 'var(--text3)' : '#fda4af',
+                              cursor: p6Page === 1 ? 'not-allowed' : 'pointer',
+                              fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 0.15s', opacity: p6Page === 1 ? 0.4 : 1,
+                            }}
+                          >‹</button>
+
+                          {/* Nomor halaman */}
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => (
+                            <button
+                              key={pg}
+                              onClick={() => { setP6Page(pg); setP6ExpandedKec({}); }}
+                              style={{
+                                minWidth: 32, height: 32, borderRadius: 7,
+                                border: pg === p6Page
+                                  ? '1px solid rgba(244,63,94,0.5)'
+                                  : '1px solid rgba(244,63,94,0.18)',
+                                background: pg === p6Page
+                                  ? 'rgba(244,63,94,0.18)'
+                                  : 'transparent',
+                                color: pg === p6Page ? '#fda4af' : 'var(--text3)',
+                                fontWeight: pg === p6Page ? 800 : 500,
+                                cursor: 'pointer', fontFamily: 'inherit', fontSize: 12,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                transition: 'all 0.15s',
+                                padding: '0 6px',
+                              }}
+                            >{pg}</button>
+                          ))}
+
+                          {/* Next */}
+                          <button
+                            disabled={p6Page === totalPages}
+                            onClick={() => { setP6Page(p => p + 1); setP6ExpandedKec({}); }}
+                            style={{
+                              width: 32, height: 32, borderRadius: 7,
+                              border: '1px solid rgba(244,63,94,0.25)',
+                              background: p6Page === totalPages ? 'transparent' : 'rgba(244,63,94,0.08)',
+                              color: p6Page === totalPages ? 'var(--text3)' : '#fda4af',
+                              cursor: p6Page === totalPages ? 'not-allowed' : 'pointer',
+                              fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              transition: 'all 0.15s', opacity: p6Page === totalPages ? 0.4 : 1,
+                            }}
+                          >›</button>
                         </div>
-                      );
-                    })}
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Tabel detail desa dengan P6 */}
               {desaBelumList.length > 0 && (
