@@ -331,6 +331,48 @@ function P6KecDetail({ kecamatan, data, color }) {
   );
 }
 
+// ── Helper: bangun array nomor halaman dengan ellipsis ──
+function buildPageNums(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = [1];
+  if (current > 3) pages.push('…');
+  const start = Math.max(2, current - 1);
+  const end   = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (current < total - 2) pages.push('…');
+  pages.push(total);
+  return pages;
+}
+
+// ── Tombol paginasi ──
+function PagBtn({ children, onClick, disabled, active, title }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      style={{
+        minWidth: 28, height: 28,
+        borderRadius: 6,
+        border: active
+          ? '1px solid rgba(99,102,241,0.55)'
+          : '1px solid var(--border)',
+        background: active
+          ? 'rgba(99,102,241,0.18)'
+          : disabled ? 'transparent' : 'var(--surface)',
+        color: active ? '#a5b4fc' : disabled ? 'var(--text3)' : 'var(--text2)',
+        fontWeight: active ? 800 : 500,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        fontFamily: 'inherit', fontSize: 12,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '0 5px',
+        opacity: disabled ? 0.35 : 1,
+        transition: 'all 0.13s',
+      }}
+    >{children}</button>
+  );
+}
+
 export default function Overview({ kecamatanList }) {
   const [tanggal, setTanggal] = useState(dayjs().format('YYYY-MM-DD'));
   const [kecamatan, setKecamatan] = useState('');
@@ -349,6 +391,14 @@ export default function Overview({ kecamatanList }) {
   // Paginasi card "Urutan Kecamatan — P6 Tertinggi"
   const P6_PER_PAGE = 5;
   const [p6Page, setP6Page] = useState(1);
+
+  // Rekap per Desa — search, filter kecamatan, paginasi
+  const REKAP_PER_PAGE = 10;
+  const [rekapQuery,    setRekapQuery]    = useState('');
+  const [rekapKecFilter, setRekapKecFilter] = useState('');
+  const [rekapSortCol,  setRekapSortCol]  = useState('kecamatan'); // kecamatan | desa | p1 | p2 | p3 | bangunan | belum | sls
+  const [rekapSortDir,  setRekapSortDir]  = useState('asc');
+  const [rekapPage,     setRekapPage]     = useState(1);
 
   const [statsRef, statsInView] = useInView(0.1);
   const [chartRef, chartInView] = useInView(0.1);
@@ -379,6 +429,10 @@ export default function Overview({ kecamatanList }) {
       setP6Detail({});
       setP6ExpandedKec({});
       setP6Page(1);
+      // Reset rekap table
+      setRekapQuery('');
+      setRekapKecFilter('');
+      setRekapPage(1);
     } catch { }
     setLoading(false); setRefreshing(false);
   };
@@ -1071,50 +1125,323 @@ export default function Overview({ kecamatanList }) {
             </div>
           )}
 
-          {/* Rekap per desa tabel */}
-          {safeRekap.length > 0 && (
-            <div className="card animate-fadein" style={{ animationDelay: '0.45s' }}>
-              <div className="card-head">
-                <div className="card-title-g">
-                  <div className="c-icon ci-b">📍</div>
-                  <div>
-                    <div className="c-title">Rekap per Desa</div>
-                    <div className="c-sub">{safeRekap.length} desa telah melapor</div>
+          {/* ══════════════════════════════════════════
+              REKAP PER DESA — search + filter + sort + paginasi
+          ══════════════════════════════════════════ */}
+          {safeRekap.length > 0 && (() => {
+            // ── List kecamatan unik untuk filter dropdown ──
+            const kecOptions = [...new Set(safeRekap.map(r => r._id?.kecamatan).filter(Boolean))].sort();
+
+            // ── Filter: query teks + filter kecamatan ──
+            const afterFilter = safeRekap.filter(r => {
+              const matchKec = rekapKecFilter ? r._id?.kecamatan === rekapKecFilter : true;
+              if (!matchKec) return false;
+              if (!rekapQuery.trim()) return true;
+              const q = rekapQuery.toLowerCase();
+              return (
+                (r._id?.kecamatan || '').toLowerCase().includes(q) ||
+                (r._id?.desa      || '').toLowerCase().includes(q)
+              );
+            });
+
+            // ── Sort ──
+            const sortVal = (r) => {
+              switch (rekapSortCol) {
+                case 'desa':      return (r._id?.desa || '').toLowerCase();
+                case 'kecamatan': return (r._id?.kecamatan || '').toLowerCase();
+                case 'sls':       return r.jumlah_laporan || 0;
+                case 'p1':        return r.total_keluarga_submit || 0;
+                case 'p2':        return r.total_usaha_submit || 0;
+                case 'p3':        return r.total_bku_submit || 0;
+                case 'bangunan':  return r.total_bangunan || 0;
+                case 'belum':     return r.total_belum_submit || 0;
+                default:          return (r._id?.kecamatan || '').toLowerCase();
+              }
+            };
+            const afterSort = [...afterFilter].sort((a, b) => {
+              const va = sortVal(a), vb = sortVal(b);
+              const cmp = typeof va === 'string' ? va.localeCompare(vb) : va - vb;
+              return rekapSortDir === 'asc' ? cmp : -cmp;
+            });
+
+            // ── Paginasi ──
+            const totalRekapPages = Math.max(1, Math.ceil(afterSort.length / REKAP_PER_PAGE));
+            const safeRekapPage   = Math.min(rekapPage, totalRekapPages);
+            const rekapStart      = (safeRekapPage - 1) * REKAP_PER_PAGE;
+            const pageRows        = afterSort.slice(rekapStart, rekapStart + REKAP_PER_PAGE);
+
+            // Handler sort: toggle arah jika kolom sama, set asc jika beda
+            const handleSort = (col) => {
+              if (col === rekapSortCol) {
+                setRekapSortDir(d => d === 'asc' ? 'desc' : 'asc');
+              } else {
+                setRekapSortCol(col);
+                setRekapSortDir('asc');
+              }
+              setRekapPage(1);
+            };
+
+            const SortIcon = ({ col }) => {
+              if (col !== rekapSortCol) return <span style={{ opacity: 0.3, fontSize: 9 }}>⇅</span>;
+              return <span style={{ fontSize: 9, color: '#a5b4fc' }}>{rekapSortDir === 'asc' ? '▲' : '▼'}</span>;
+            };
+
+            const thStyle = (col) => ({
+              cursor: 'pointer',
+              userSelect: 'none',
+              whiteSpace: 'nowrap',
+              transition: 'color 0.15s',
+              color: col === rekapSortCol ? '#a5b4fc' : undefined,
+            });
+
+            return (
+              <div className="card animate-fadein" style={{ animationDelay: '0.45s' }}>
+
+                {/* ── Card head ── */}
+                <div className="card-head" style={{ flexWrap: 'wrap', gap: 10 }}>
+                  <div className="card-title-g">
+                    <div className="c-icon ci-b">📍</div>
+                    <div>
+                      <div className="c-title">Rekap per Desa</div>
+                      <div className="c-sub">
+                        {afterFilter.length === safeRekap.length
+                          ? `${safeRekap.length} desa telah melapor`
+                          : `${afterFilter.length} dari ${safeRekap.length} desa`}
+                      </div>
+                    </div>
                   </div>
+                  <span className="badge bp">{afterFilter.length} desa</span>
                 </div>
-                <span className="badge bp">{safeRekap.length} desa</span>
+
+                {/* ── Toolbar: search + filter kecamatan ── */}
+                <div style={{
+                  display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center',
+                  marginBottom: 14,
+                  padding: '10px 14px',
+                  background: 'var(--surface)',
+                  borderRadius: 'var(--r-sm)',
+                  border: '1px solid var(--border)',
+                }}>
+                  {/* Search box */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    flex: '1 1 200px', minWidth: 180,
+                    padding: '0 10px',
+                    background: 'var(--surface2)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    height: 36,
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                      stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                      style={{ flexShrink: 0 }}>
+                      <circle cx="11" cy="11" r="8"/>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input
+                      type="text"
+                      value={rekapQuery}
+                      onChange={e => { setRekapQuery(e.target.value); setRekapPage(1); }}
+                      placeholder="Cari kecamatan atau desa..."
+                      style={{
+                        flex: 1, border: 'none', background: 'transparent',
+                        outline: 'none', fontSize: 13, fontWeight: 500,
+                        color: 'var(--text)', fontFamily: 'inherit',
+                      }}
+                    />
+                    {rekapQuery && (
+                      <button
+                        onClick={() => { setRekapQuery(''); setRekapPage(1); }}
+                        style={{
+                          width: 18, height: 18, border: 'none', padding: 0,
+                          background: 'var(--surface3)', borderRadius: '50%',
+                          color: 'var(--text3)', cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none"
+                          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filter kecamatan dropdown */}
+                  <div style={{ flex: '1 1 180px', minWidth: 160 }}>
+                    <select
+                      value={rekapKecFilter}
+                      onChange={e => { setRekapKecFilter(e.target.value); setRekapPage(1); }}
+                      className="ctrl-sel"
+                      style={{ width: '100%', padding: '8px 28px 8px 10px', fontSize: 12, height: 36 }}
+                    >
+                      <option value="">— Semua Kecamatan —</option>
+                      {kecOptions.map(k => <option key={k} value={k}>{k}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Filter: hanya yang ada P6 */}
+                  <label style={{
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    fontSize: 12, fontWeight: 600, color: 'var(--text2)',
+                    cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={rekapSortCol === 'belum' && rekapKecFilter === rekapKecFilter}
+                      onChange={e => {
+                        // Toggle filter "hanya ada P6" via quick-sort ke kolom belum desc
+                        if (e.target.checked) {
+                          setRekapSortCol('belum');
+                          setRekapSortDir('desc');
+                        } else {
+                          setRekapSortCol('kecamatan');
+                          setRekapSortDir('asc');
+                        }
+                        setRekapPage(1);
+                      }}
+                      style={{ accentColor: '#f43f5e', width: 14, height: 14 }}
+                    />
+                    <span style={{ color: '#fda4af' }}>Urutkan P6 terbanyak</span>
+                  </label>
+
+                  {/* Tombol reset filter */}
+                  {(rekapQuery || rekapKecFilter || rekapSortCol !== 'kecamatan') && (
+                    <button
+                      onClick={() => {
+                        setRekapQuery('');
+                        setRekapKecFilter('');
+                        setRekapSortCol('kecamatan');
+                        setRekapSortDir('asc');
+                        setRekapPage(1);
+                      }}
+                      style={{
+                        padding: '6px 12px', borderRadius: 7, fontSize: 11, fontWeight: 700,
+                        background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)',
+                        color: '#fda4af', cursor: 'pointer', fontFamily: 'inherit',
+                        display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                      }}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                      Reset
+                    </button>
+                  )}
+                </div>
+
+                {/* ── Tabel ── */}
+                {pageRows.length === 0 ? (
+                  <div style={{ padding: '32px 0', textAlign: 'center' }}>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
+                    <div style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 600 }}>
+                      Tidak ada data yang cocok
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+                      Coba ubah kata kunci atau filter
+                    </div>
+                  </div>
+                ) : (
+                  <div className="tw">
+                    <table className="tbl">
+                      <thead>
+                        <tr>
+                          <th style={{ width: 36 }}>#</th>
+                          <th style={thStyle('kecamatan')} onClick={() => handleSort('kecamatan')}>
+                            Kecamatan <SortIcon col="kecamatan" />
+                          </th>
+                          <th style={thStyle('desa')} onClick={() => handleSort('desa')}>
+                            Desa <SortIcon col="desa" />
+                          </th>
+                          <th style={thStyle('sls')} onClick={() => handleSort('sls')}>
+                            SLS Lapor <SortIcon col="sls" />
+                          </th>
+                          <th style={thStyle('p1')} onClick={() => handleSort('p1')}>
+                            P1 Keluarga <SortIcon col="p1" />
+                          </th>
+                          <th style={thStyle('p2')} onClick={() => handleSort('p2')}>
+                            P2 Usaha <SortIcon col="p2" />
+                          </th>
+                          <th style={thStyle('p3')} onClick={() => handleSort('p3')}>
+                            P3 BKU <SortIcon col="p3" />
+                          </th>
+                          <th style={thStyle('bangunan')} onClick={() => handleSort('bangunan')}>
+                            Bangunan <SortIcon col="bangunan" />
+                          </th>
+                          <th style={thStyle('belum')} onClick={() => handleSort('belum')}>
+                            P6 Belum <SortIcon col="belum" />
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pageRows.map((r, i) => (
+                          <tr key={i} style={{ animation: `fadeInUp 0.3s ease ${i * 25}ms both` }}>
+                            <td style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
+                              {rekapStart + i + 1}
+                            </td>
+                            <td className="bold">{r._id?.kecamatan}</td>
+                            <td>{r._id?.desa}</td>
+                            <td><span className="badge bp">{r.jumlah_laporan}</span></td>
+                            <td>{(r.total_keluarga_submit || 0).toLocaleString('id-ID')}</td>
+                            <td>{(r.total_usaha_submit || 0).toLocaleString('id-ID')}</td>
+                            <td>{(r.total_bku_submit || 0).toLocaleString('id-ID')}</td>
+                            <td>{(r.total_bangunan || 0).toLocaleString('id-ID')}</td>
+                            <td>
+                              {(r.total_belum_submit || 0) > 0
+                                ? <span className="badge br">{r.total_belum_submit}</span>
+                                : <span style={{ color: 'var(--text3)' }}>—</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* ── Paginasi footer ── */}
+                {totalRekapPages > 1 && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    marginTop: 14, paddingTop: 14,
+                    borderTop: '1px solid var(--border)',
+                    gap: 8, flexWrap: 'wrap',
+                  }}>
+                    {/* Info */}
+                    <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
+                      Halaman{' '}
+                      <strong style={{ color: 'var(--text2)' }}>{safeRekapPage}</strong>
+                      {' '}dari{' '}
+                      <strong style={{ color: 'var(--text2)' }}>{totalRekapPages}</strong>
+                      {' · '}baris{' '}
+                      <strong style={{ color: 'var(--text2)' }}>
+                        {rekapStart + 1}–{Math.min(rekapStart + REKAP_PER_PAGE, afterSort.length)}
+                      </strong>
+                      {' '}dari{' '}
+                      <strong style={{ color: 'var(--text2)' }}>{afterSort.length}</strong>
+                    </span>
+
+                    {/* Tombol navigasi */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <PagBtn disabled={safeRekapPage === 1} onClick={() => setRekapPage(1)} title="Pertama">«</PagBtn>
+                      <PagBtn disabled={safeRekapPage === 1} onClick={() => setRekapPage(p => p - 1)} title="Sebelumnya">‹</PagBtn>
+                      {buildPageNums(safeRekapPage, totalRekapPages).map((pg, idx) =>
+                        pg === '…' ? (
+                          <span key={`e${idx}`} style={{ width: 28, textAlign: 'center', fontSize: 12, color: 'var(--text3)' }}>…</span>
+                        ) : (
+                          <PagBtn key={pg} active={pg === safeRekapPage} onClick={() => setRekapPage(pg)}>{pg}</PagBtn>
+                        )
+                      )}
+                      <PagBtn disabled={safeRekapPage === totalRekapPages} onClick={() => setRekapPage(p => p + 1)} title="Berikutnya">›</PagBtn>
+                      <PagBtn disabled={safeRekapPage === totalRekapPages} onClick={() => setRekapPage(totalRekapPages)} title="Terakhir">»</PagBtn>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="tw">
-                <table className="tbl">
-                  <thead>
-                    <tr>
-                      <th>Kecamatan</th><th>Desa</th><th>SLS Lapor</th>
-                      <th>P1 Keluarga</th><th>P2 Usaha</th><th>P3 BKU</th>
-                      <th>Bangunan</th><th>P6 Belum</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {safeRekap.map((r, i) => (
-                      <tr key={i} style={{ animation: `fadeInUp 0.4s ease ${Math.min(i * 30, 600)}ms both` }}>
-                        <td className="bold">{r._id?.kecamatan}</td>
-                        <td>{r._id?.desa}</td>
-                        <td><span className="badge bp">{r.jumlah_laporan}</span></td>
-                        <td>{(r.total_keluarga_submit || 0).toLocaleString('id-ID')}</td>
-                        <td>{(r.total_usaha_submit || 0).toLocaleString('id-ID')}</td>
-                        <td>{(r.total_bku_submit || 0).toLocaleString('id-ID')}</td>
-                        <td>{(r.total_bangunan || 0).toLocaleString('id-ID')}</td>
-                        <td>
-                          {(r.total_belum_submit || 0) > 0
-                            ? <span className="badge br">{r.total_belum_submit}</span>
-                            : <span style={{ color: 'var(--text3)' }}>—</span>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+            );
+          })()}
         </>
       )}
     </div>
