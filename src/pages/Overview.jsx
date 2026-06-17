@@ -372,6 +372,7 @@ export default function Overview({ kecamatanList }) {
       <div className="controls-row">
         <DatePicker value={tanggal} onChange={setTanggal} label="Tanggal" />
         <SearchSelect
+          className="ss-kec"
           label="Kecamatan"
           placeholder="— Semua Kecamatan —"
           value={kecamatan}

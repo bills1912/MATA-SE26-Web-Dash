@@ -14,7 +14,7 @@ function Dropdown({ triggerRef, onClose, children }) {
       const top = spaceBelow >= popH
         ? r.bottom + window.scrollY + 4
         : r.top + window.scrollY - popH - 4;
-      setPos({ top, left: r.left + window.scrollX, width: r.width });
+      setPos({ top, left: r.left + window.scrollX, width: Math.max(r.width, 280) });
     };
     calc();
     window.addEventListener('resize', calc);
@@ -40,7 +40,7 @@ function Dropdown({ triggerRef, onClose, children }) {
     <div
       ref={ref}
       className="ss-portal-dropdown"
-      style={{ top: pos.top, left: pos.left, width: pos.width }}
+      style={{ top: pos.top, left: pos.left, width: pos.width, minWidth: pos.width }}
     >
       {children}
     </div>,

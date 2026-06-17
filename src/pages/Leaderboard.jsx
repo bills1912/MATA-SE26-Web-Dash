@@ -179,6 +179,7 @@ export default function Leaderboard({ kecamatanList }) {
         <DatePicker value={dari}   onChange={setDari}   label="Dari Tanggal" />
         <DatePicker value={sampai} onChange={setSampai} label="Sampai Tanggal" />
         <SearchSelect
+          className="ss-kec"
           label="Kecamatan"
           placeholder="— Semua Kecamatan —"
           value={kec}

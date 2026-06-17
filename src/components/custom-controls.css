@@ -363,6 +363,12 @@
 /* ── Wrapper ── */
 .ss-wrap {
   position: relative;
+  min-width: 200px;
+}
+.controls .ss-wrap,
+.controls-row .ss-wrap {
+  min-width: 200px;
+  flex: 1 1 200px;
 }
 
 /* ── Label ── */
@@ -400,6 +406,7 @@
   font-family: inherit;
   text-align: left;
   color: var(--ss-text);
+  min-width: 280px;
 }
 
 .ss-trigger:hover:not(.ss-disabled) {
@@ -484,6 +491,7 @@
   z-index: 99999;
   overflow: hidden;
   animation: ssSlide 0.15s cubic-bezier(0.22, 1, 0.36, 1);
+  min-width: 260px;
 }
 
 @keyframes ssSlide {
@@ -499,6 +507,10 @@
   padding: 9px 12px;
   background: rgba(99, 102, 241, 0.06);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ss-kec .ss-trigger {
+  min-width: 220px;
 }
 
 [data-theme="light"] .ss-search-wrap {

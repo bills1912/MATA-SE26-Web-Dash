@@ -112,6 +112,7 @@ export default function Monitor({ kecamatanList }) {
       <div className="controls">
         <DatePicker value={tanggal} onChange={setTanggal} label="Tanggal" />
         <SearchSelect
+          className="ss-kec"
           label="Kecamatan"
           placeholder="— Semua Kecamatan —"
           value={kec}
