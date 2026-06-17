@@ -1,0 +1,166 @@
+/* ================================================
+   ACTION BUTTONS — Refresh & Export
+   Konsisten dengan DatePicker & SearchSelect
+   ================================================ */
+
+:root,
+[data-theme="dark"] {
+  --ab-refresh-bg:     rgba(99, 102, 241, 0.08);
+  --ab-refresh-border: rgba(99, 102, 241, 0.28);
+  --ab-refresh-text:   #a78bfa;
+  --ab-refresh-hover:  rgba(99, 102, 241, 0.18);
+  --ab-refresh-glow:   rgba(99, 102, 241, 0.35);
+
+  --ab-export-bg:     rgba(16, 185, 129, 0.08);
+  --ab-export-border: rgba(16, 185, 129, 0.28);
+  --ab-export-text:   #6ee7b7;
+  --ab-export-hover:  rgba(16, 185, 129, 0.18);
+  --ab-export-glow:   rgba(16, 185, 129, 0.3);
+}
+
+[data-theme="light"] {
+  --ab-refresh-bg:     rgba(99, 102, 241, 0.06);
+  --ab-refresh-border: rgba(99, 102, 241, 0.22);
+  --ab-refresh-text:   #4f46e5;
+  --ab-refresh-hover:  rgba(99, 102, 241, 0.12);
+  --ab-refresh-glow:   rgba(99, 102, 241, 0.2);
+
+  --ab-export-bg:     rgba(16, 185, 129, 0.06);
+  --ab-export-border: rgba(16, 185, 129, 0.22);
+  --ab-export-text:   #059669;
+  --ab-export-hover:  rgba(16, 185, 129, 0.12);
+  --ab-export-glow:   rgba(16, 185, 129, 0.2);
+}
+
+/* ── Base button ── */
+.ab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  min-height: 44px;
+  border-radius: 9px;
+  border: 1.5px solid transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    box-shadow 0.2s,
+    transform 0.15s;
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+/* Shimmer effect on hover */
+.ab-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 60%
+  );
+  transform: translateX(-100%);
+  transition: transform 0s;
+}
+
+.ab-btn:hover::before {
+  transform: translateX(100%);
+  transition: transform 0.45s ease;
+}
+
+.ab-btn:active {
+  transform: scale(0.97);
+}
+
+/* ── Icon wrapper ── */
+.ab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  font-size: 13px;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.ab-btn:hover .ab-icon {
+  transform: scale(1.12);
+}
+
+/* ── Refresh button ── */
+.ab-refresh {
+  background: var(--ab-refresh-bg);
+  border-color: var(--ab-refresh-border);
+  color: var(--ab-refresh-text);
+}
+
+.ab-refresh .ab-icon {
+  background: rgba(99, 102, 241, 0.15);
+}
+
+.ab-refresh:hover {
+  background: var(--ab-refresh-hover);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow:
+    0 0 0 3px var(--ab-refresh-glow),
+    0 4px 14px rgba(99, 102, 241, 0.2);
+}
+
+/* ── Export button ── */
+.ab-export {
+  background: var(--ab-export-bg);
+  border-color: var(--ab-export-border);
+  color: var(--ab-export-text);
+}
+
+.ab-export .ab-icon {
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.ab-export:hover {
+  background: var(--ab-export-hover);
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow:
+    0 0 0 3px var(--ab-export-glow),
+    0 4px 14px rgba(16, 185, 129, 0.18);
+}
+
+/* ── Spin animation ── */
+@keyframes ab-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.ab-spin {
+  display: inline-block;
+  animation: ab-spin 0.65s linear infinite;
+}
+
+/* ── Loading state ── */
+.ab-refresh.ab-loading {
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.ab-refresh.ab-loading .ab-icon {
+  animation: ab-spin 0.65s linear infinite;
+}
+
+/* ── Controls row ── */
+.controls-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 22px;
+}

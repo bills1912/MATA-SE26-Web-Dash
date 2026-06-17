@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import dayjs from 'dayjs';
+import 'dayjs/locale/id';
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -6,8 +8,11 @@ import {
 } from 'recharts';
 import DatePicker, { todayStr } from '../components/DatePicker';
 import SearchSelect from '../components/SearchSelect';
+import { RefreshButton, ExportButton } from '../components/ActionButtons';
 import '../components/custom-controls.css';
 import { dashApi } from '../utils/api';
+
+dayjs.locale('id');
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#3b82f6', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#14b8a6', '#a855f7'];
 
@@ -94,7 +99,6 @@ export default function Overview({ kecamatanList }) {
         dashApi.getTrend({ hari: 14, ...(kecamatan ? { kecamatan } : {}) }),
       ]);
       setSummary(s.data);
-      // ✅ FIX: guard Array.isArray sebelum setRekapDesa
       setRekapDesa(Array.isArray(r.data) ? r.data : []);
       setTrend(Array.isArray(t.data) ? t.data.map(d => ({
         tgl: d._id.slice(5),
@@ -111,7 +115,6 @@ export default function Overview({ kecamatanList }) {
 
   useEffect(() => { load(); }, [tanggal, kecamatan]);
 
-  // ✅ FIX: guard Array.isArray sebelum .reduce() — ini penyebab crash kedua
   const safeRekap = Array.isArray(rekapDesa) ? rekapDesa : [];
 
   const pieData = Object.entries(
@@ -137,21 +140,19 @@ export default function Overview({ kecamatanList }) {
 
   return (
     <div>
-      <div className="controls">
+      <div className="controls-row">
         <DatePicker value={tanggal} onChange={setTanggal} label="Tanggal" />
         <SearchSelect
           label="Kecamatan"
           placeholder="— Semua Kecamatan —"
-          value={kec}
-          onChange={setKec}
+          value={kecamatan}
+          onChange={setKecamatan}
           options={Array.isArray(kecamatanList) ? kecamatanList : []}
         />
-        <button className="btn-ref" onClick={() => load(true)}>
-          <span className={refreshing ? 'spin' : ''}>🔄</span> Refresh
-        </button>
-        <button className="btn-exp" onClick={() => dashApi.exportCsv({ tanggal, ...(kecamatan ? { kecamatan } : {}) })}>
-          ⬇️ Export CSV
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', paddingBottom: 0 }}>
+          <RefreshButton onClick={() => load(true)} loading={refreshing} />
+          <ExportButton onClick={() => dashApi.exportCsv({ tanggal, ...(kecamatan ? { kecamatan } : {}) })} />
+        </div>
       </div>
 
       {loading ? (

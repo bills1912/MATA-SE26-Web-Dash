@@ -7,6 +7,9 @@ import {
 import DatePicker, { todayStr } from '../components/DatePicker';
 import SearchSelect from '../components/SearchSelect';
 import '../components/custom-controls.css';
+import dayjs from 'dayjs';
+import 'dayjs/locale/id';
+dayjs.locale('id');
 import { dashApi } from '../utils/api';
 import { formatTanggal } from '../utils/date';
 
