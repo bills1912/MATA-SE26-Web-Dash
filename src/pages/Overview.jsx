@@ -7,7 +7,7 @@ import {
 import dayjs from 'dayjs';
 import { dashApi } from '../utils/api';
 
-const COLORS = ['#6366f1','#10b981','#f59e0b','#f43f5e','#3b82f6','#8b5cf6','#06b6d4','#ec4899','#84cc16','#f97316','#14b8a6','#a855f7'];
+const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#f43f5e', '#3b82f6', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#14b8a6', '#a855f7'];
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -16,8 +16,8 @@ const CustomTooltip = ({ active, payload, label }) => {
       <div className="tt-label">{label}</div>
       {payload.map((p, i) => (
         <div className="tt-row" key={i}>
-          <span className="tt-dot" style={{ background: p.color }}/>
-          {p.name}: <strong>{(p.value||0).toLocaleString('id-ID')}</strong>
+          <span className="tt-dot" style={{ background: p.color }} />
+          {p.name}: <strong>{(p.value || 0).toLocaleString('id-ID')}</strong>
         </div>
       ))}
     </div>
@@ -74,15 +74,15 @@ function StatCard({ icon, label, value, className, delay = 0, inView }) {
 }
 
 export default function Overview({ kecamatanList }) {
-  const [tanggal, setTanggal]     = useState(dayjs().format('YYYY-MM-DD'));
+  const [tanggal, setTanggal] = useState(dayjs().format('YYYY-MM-DD'));
   const [kecamatan, setKecamatan] = useState('');
-  const [summary, setSummary]     = useState(null);
-  const [trend, setTrend]         = useState([]);
+  const [summary, setSummary] = useState(null);
+  const [trend, setTrend] = useState([]);
   const [rekapDesa, setRekapDesa] = useState([]);
-  const [loading, setLoading]     = useState(false);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [statsRef, statsInView]   = useInView(0.1);
-  const [chartRef, chartInView]   = useInView(0.1);
+  const [statsRef, statsInView] = useInView(0.1);
+  const [chartRef, chartInView] = useInView(0.1);
 
   const load = async (showRefresh = false) => {
     if (showRefresh) setRefreshing(true); else setLoading(true);
@@ -99,14 +99,14 @@ export default function Overview({ kecamatanList }) {
       // Backend trend: _id = tanggal, total_keluarga_submit, total_usaha_submit, total_bku_submit
       setTrend(t.data.map(d => ({
         tgl: d._id.slice(5),
-        usaha:    d.total_usaha_submit    || 0,
+        usaha: d.total_usaha_submit || 0,
         keluarga: d.total_keluarga_submit || 0,
-        bku:      d.total_bku_submit      || 0,
-        belum:    d.total_belum_submit    || 0,
-        total:    (d.total_usaha_submit || 0) + (d.total_keluarga_submit || 0),
-        laporan:  d.jumlah_laporan        || 0,
+        bku: d.total_bku_submit || 0,
+        belum: d.total_belum_submit || 0,
+        total: (d.total_usaha_submit || 0) + (d.total_keluarga_submit || 0),
+        laporan: d.jumlah_laporan || 0,
       })));
-    } catch {}
+    } catch { }
     setLoading(false); setRefreshing(false);
   };
 
@@ -121,17 +121,17 @@ export default function Overview({ kecamatanList }) {
       acc[k] += (r.total_usaha_submit || 0) + (r.total_keluarga_submit || 0);
       return acc;
     }, {})
-  ).map(([name, value]) => ({ name, value })).sort((a,b) => b.value-a.value);
+  ).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
 
   // Stacked bar per kecamatan
   const kecBarData = Object.entries(
     rekapDesa.reduce((acc, r) => {
       const k = r._id.kecamatan;
-      if (!acc[k]) acc[k] = { name: k.length > 14 ? k.slice(0,12)+'…' : k, usaha: 0, keluarga: 0, bku: 0, bangunan: 0 };
-      acc[k].usaha    += r.total_usaha_submit    || 0;
+      if (!acc[k]) acc[k] = { name: k.length > 14 ? k.slice(0, 12) + '…' : k, usaha: 0, keluarga: 0, bku: 0, bangunan: 0 };
+      acc[k].usaha += r.total_usaha_submit || 0;
       acc[k].keluarga += r.total_keluarga_submit || 0;
-      acc[k].bku      += r.total_bku_submit      || 0;
-      acc[k].bangunan += r.total_bangunan        || 0;
+      acc[k].bku += r.total_bku_submit || 0;
+      acc[k].bangunan += r.total_bangunan || 0;
       return acc;
     }, {})
   ).map(([, v]) => v).sort((a, b) => (b.usaha + b.keluarga) - (a.usaha + a.keluarga));
@@ -155,7 +155,7 @@ export default function Overview({ kecamatanList }) {
       </div>
 
       {loading ? (
-        <div className="loading"><div className="spinner"/><div className="loading-text">Memuat data...</div></div>
+        <div className="loading"><div className="spinner" /><div className="loading-text">Memuat data...</div></div>
       ) : (
         <>
           {/* Stat cards */}
@@ -203,7 +203,7 @@ export default function Overview({ kecamatanList }) {
               />
               <div className="stat-card sc-g animate-fadein" style={{ animationDelay: '560ms' }}>
                 <div className="s-icon">👥</div>
-                <div className="s-val">{(summary?.jumlah_pcl||[]).length}</div>
+                <div className="s-val">{(summary?.jumlah_pcl || []).length}</div>
                 <div className="s-label">PCL Aktif Melapor</div>
               </div>
             </div>
@@ -222,29 +222,29 @@ export default function Overview({ kecamatanList }) {
                 </div>
               </div>
               <ResponsiveContainer width="100%" height={220}>
-                <AreaChart data={trend} margin={{ top:5, right:10, left:0, bottom:0 }}>
+                <AreaChart data={trend} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gUsaha" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.35}/>
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="gKel" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#10b981" stopOpacity={0.35}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="gBku" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#f59e0b" stopOpacity={0.25}/>
-                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid,rgba(255,255,255,0.06))" />
-                  <XAxis dataKey="tgl" tick={{ fontSize:11, fill:'var(--text3)' }} />
-                  <YAxis tick={{ fontSize:11, fill:'var(--text3)' }} />
-                  <Tooltip content={<CustomTooltip/>} />
-                  <Legend wrapperStyle={{ fontSize:12 }} />
-                  <Area type="monotone" dataKey="usaha"    name="Usaha (P2)"    stroke="#6366f1" fill="url(#gUsaha)" strokeWidth={2.5} animationDuration={1200}/>
-                  <Area type="monotone" dataKey="keluarga" name="Keluarga (P1)" stroke="#10b981" fill="url(#gKel)"   strokeWidth={2.5} animationDuration={1400}/>
-                  <Area type="monotone" dataKey="bku"      name="BKU (P3)"      stroke="#f59e0b" fill="url(#gBku)"   strokeWidth={2}   animationDuration={1600}/>
+                  <XAxis dataKey="tgl" tick={{ fontSize: 11, fill: 'var(--text3)' }} />
+                  <YAxis tick={{ fontSize: 11, fill: 'var(--text3)' }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Area type="monotone" dataKey="usaha" name="Usaha (P2)" stroke="#6366f1" fill="url(#gUsaha)" strokeWidth={2.5} animationDuration={1200} />
+                  <Area type="monotone" dataKey="keluarga" name="Keluarga (P1)" stroke="#10b981" fill="url(#gKel)" strokeWidth={2.5} animationDuration={1400} />
+                  <Area type="monotone" dataKey="bku" name="BKU (P3)" stroke="#f59e0b" fill="url(#gBku)" strokeWidth={2} animationDuration={1600} />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -261,12 +261,12 @@ export default function Overview({ kecamatanList }) {
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={trend} margin={{ top:4, right:8, left:0, bottom:0 }}>
+                  <BarChart data={trend} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid,rgba(255,255,255,0.06))" />
-                    <XAxis dataKey="tgl" tick={{ fontSize:10, fill:'var(--text3)' }} />
-                    <YAxis tick={{ fontSize:10, fill:'var(--text3)' }} />
-                    <Tooltip content={<CustomTooltip/>} />
-                    <Bar dataKey="laporan" name="Laporan" fill="#6366f1" radius={[4,4,0,0]} animationDuration={1000}/>
+                    <XAxis dataKey="tgl" tick={{ fontSize: 10, fill: 'var(--text3)' }} />
+                    <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="laporan" name="Laporan" fill="#6366f1" radius={[4, 4, 0, 0]} animationDuration={1000} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -287,7 +287,7 @@ export default function Overview({ kecamatanList }) {
                       {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
                     <Tooltip formatter={(v) => v.toLocaleString('id-ID')} />
-                    <Legend formatter={(v) => v.length > 14 ? v.slice(0,13)+'…' : v} wrapperStyle={{ fontSize:10 }} />
+                    <Legend formatter={(v) => v.length > 14 ? v.slice(0, 13) + '…' : v} wrapperStyle={{ fontSize: 10 }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -306,16 +306,16 @@ export default function Overview({ kecamatanList }) {
                   </div>
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={kecBarData} margin={{ top:4, right:8, left:0, bottom:44 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid,rgba(255,255,255,0.06))"/>
-                  <XAxis dataKey="name" tick={{ fontSize:10, fill:'var(--text3)' }} angle={-30} textAnchor="end"/>
-                  <YAxis tick={{ fontSize:10, fill:'var(--text3)' }}/>
-                  <Tooltip content={<CustomTooltip/>}/>
-                  <Legend wrapperStyle={{ fontSize:11 }}/>
-                  <Bar dataKey="usaha"    name="Usaha (P2)"    fill="#6366f1" stackId="a" animationDuration={1000}/>
-                  <Bar dataKey="keluarga" name="Keluarga (P1)" fill="#10b981" stackId="a" animationDuration={1200}/>
-                  <Bar dataKey="bku"      name="BKU (P3)"      fill="#f59e0b" radius={[3,3,0,0]} stackId="a" animationDuration={1400}/>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={kecBarData} margin={{ top: 30, right: 8, left: 0, bottom: 60 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid,rgba(255,255,255,0.06))" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--text3)' }} angle={-30} textAnchor="end" interval={0} />
+                  <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend verticalAlign="top" wrapperStyle={{ fontSize: 11, paddingBottom: 8 }} />
+                  <Bar dataKey="usaha" name="Usaha (P2)" fill="#6366f1" stackId="a" animationDuration={1000} />
+                  <Bar dataKey="keluarga" name="Keluarga (P1)" fill="#10b981" stackId="a" animationDuration={1200} />
+                  <Bar dataKey="bku" name="BKU (P3)" fill="#f59e0b" radius={[3, 3, 0, 0]} stackId="a" animationDuration={1400} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -334,19 +334,19 @@ export default function Overview({ kecamatanList }) {
                 </div>
               </div>
               <ResponsiveContainer width="100%" height={180}>
-                <ComposedChart data={trend} margin={{ top:4, right:10, left:0, bottom:0 }}>
+                <ComposedChart data={trend} margin={{ top: 4, right: 10, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gTotal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#f59e0b" stopOpacity={0.25}/>
-                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid,rgba(255,255,255,0.06))"/>
-                  <XAxis dataKey="tgl" tick={{ fontSize:10, fill:'var(--text3)' }}/>
-                  <YAxis tick={{ fontSize:10, fill:'var(--text3)' }}/>
-                  <Tooltip content={<CustomTooltip/>}/>
-                  <Area type="monotone" dataKey="total" name="Total Submit" stroke="#f59e0b" fill="url(#gTotal)" strokeWidth={0} animationDuration={1400}/>
-                  <Line type="monotone" dataKey="total" name="Total Submit" stroke="#f59e0b" strokeWidth={2.5} dot={{ r:3, fill:'#f59e0b' }} activeDot={{ r:5 }} animationDuration={1400}/>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid,rgba(255,255,255,0.06))" />
+                  <XAxis dataKey="tgl" tick={{ fontSize: 10, fill: 'var(--text3)' }} />
+                  <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="total" name="Total Submit" stroke="#f59e0b" fill="url(#gTotal)" strokeWidth={0} animationDuration={1400} />
+                  <Line type="monotone" dataKey="total" name="Total Submit" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 3, fill: '#f59e0b' }} activeDot={{ r: 5 }} animationDuration={1400} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -385,14 +385,14 @@ export default function Overview({ kecamatanList }) {
                         <td className="bold">{r._id.kecamatan}</td>
                         <td>{r._id.desa}</td>
                         <td><span className="badge bp">{r.jumlah_laporan}</span></td>
-                        <td>{(r.total_keluarga_submit||0).toLocaleString('id-ID')}</td>
-                        <td>{(r.total_usaha_submit||0).toLocaleString('id-ID')}</td>
-                        <td>{(r.total_bku_submit||0).toLocaleString('id-ID')}</td>
-                        <td>{(r.total_bangunan||0).toLocaleString('id-ID')}</td>
+                        <td>{(r.total_keluarga_submit || 0).toLocaleString('id-ID')}</td>
+                        <td>{(r.total_usaha_submit || 0).toLocaleString('id-ID')}</td>
+                        <td>{(r.total_bku_submit || 0).toLocaleString('id-ID')}</td>
+                        <td>{(r.total_bangunan || 0).toLocaleString('id-ID')}</td>
                         <td>
                           {r.total_belum_submit > 0
                             ? <span className="badge br">{r.total_belum_submit}</span>
-                            : <span style={{ color:'var(--text3)' }}>—</span>
+                            : <span style={{ color: 'var(--text3)' }}>—</span>
                           }
                         </td>
                       </tr>
