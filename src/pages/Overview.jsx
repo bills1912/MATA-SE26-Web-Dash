@@ -115,6 +115,64 @@ function BelumGauge({ pct, total }) {
   );
 }
 
+// ── Custom Checkbox dengan animasi estetik ──────────────────────────────────
+function CustomCheckbox({ checked, onChange, label, color = '#f43f5e', colorBg = 'rgba(244,63,94,0.12)', colorBorder = 'rgba(244,63,94,0.3)' }) {
+  return (
+    <label style={{
+      display: 'flex', alignItems: 'center', gap: 9,
+      cursor: 'pointer', userSelect: 'none',
+      fontSize: 12, fontWeight: 600,
+      color: checked ? color : 'var(--text2)',
+      transition: 'color 0.2s',
+    }}>
+      {/* Box */}
+      <span
+        onClick={onChange}
+        style={{
+          position: 'relative',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 18,
+          height: 18,
+          borderRadius: 5,
+          border: checked
+            ? `2px solid ${color}`
+            : '2px solid var(--border2)',
+          background: checked ? colorBg : 'var(--surface)',
+          boxShadow: checked ? `0 0 0 3px ${color}22` : 'none',
+          transition: 'all 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+          flexShrink: 0,
+          cursor: 'pointer',
+        }}
+      >
+        {/* Checkmark SVG dengan animasi */}
+        <svg
+          width="10"
+          height="10"
+          viewBox="0 0 12 12"
+          fill="none"
+          style={{
+            position: 'absolute',
+            transform: checked ? 'scale(1) rotate(0deg)' : 'scale(0) rotate(-45deg)',
+            opacity: checked ? 1 : 0,
+            transition: 'all 0.22s cubic-bezier(0.34,1.56,0.64,1)',
+          }}
+        >
+          <polyline
+            points="2,6 5,9 10,3"
+            stroke={color}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+      <span style={{ whiteSpace: 'nowrap' }}>{label}</span>
+    </label>
+  );
+}
+
 // ── Komponen panel detail petugas P6 per kecamatan — dengan paginasi ──────────
 const P6_DETAIL_PER_PAGE = 5;
 
@@ -122,7 +180,6 @@ function P6KecDetail({ kecamatan, data, color }) {
   const rows = data || [];
   const [detailPage, setDetailPage] = useState(1);
 
-  // Reset ke halaman 1 kalau data berubah (kecamatan berganti)
   useEffect(() => { setDetailPage(1); }, [kecamatan]);
 
   if (rows.length === 0) return null;
@@ -140,7 +197,6 @@ function P6KecDetail({ kecamatan, data, color }) {
       overflow: 'hidden',
       animation: 'fadeInUp 0.3s ease both',
     }}>
-      {/* Header mini */}
       <div style={{
         padding: '8px 14px',
         background: `${color}14`,
@@ -167,7 +223,6 @@ function P6KecDetail({ kecamatan, data, color }) {
         }}>{rows.length} entri</span>
       </div>
 
-      {/* Tabel petugas — hanya pageRows */}
       <div style={{ overflowX: 'auto' }}>
         <table style={{
           width: '100%',
@@ -248,7 +303,6 @@ function P6KecDetail({ kecamatan, data, color }) {
         </table>
       </div>
 
-      {/* ── Paginasi detail petugas ── */}
       {totalDetailPages > 1 && (
         <div style={{
           display: 'flex',
@@ -260,17 +314,13 @@ function P6KecDetail({ kecamatan, data, color }) {
           gap: 8,
           flexWrap: 'wrap',
         }}>
-          {/* Info */}
           <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
             Menampilkan{' '}
             <strong style={{ color: 'var(--text2)' }}>{pageStart + 1}–{Math.min(pageStart + P6_DETAIL_PER_PAGE, rows.length)}</strong>
             {' '}dari{' '}
             <strong style={{ color: 'var(--text2)' }}>{rows.length}</strong> entri
           </span>
-
-          {/* Tombol navigasi */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {/* Prev */}
             <button
               disabled={detailPage === 1}
               onClick={() => setDetailPage(p => p - 1)}
@@ -286,17 +336,13 @@ function P6KecDetail({ kecamatan, data, color }) {
                 transition: 'all 0.15s',
               }}
             >‹</button>
-
-            {/* Nomor halaman */}
             {Array.from({ length: totalDetailPages }, (_, i) => i + 1).map(pg => (
               <button
                 key={pg}
                 onClick={() => setDetailPage(pg)}
                 style={{
                   minWidth: 28, height: 28, borderRadius: 6,
-                  border: pg === detailPage
-                    ? `1px solid ${color}60`
-                    : `1px solid ${color}20`,
+                  border: pg === detailPage ? `1px solid ${color}60` : `1px solid ${color}20`,
                   background: pg === detailPage ? `${color}20` : 'transparent',
                   color: pg === detailPage ? color : 'var(--text3)',
                   fontWeight: pg === detailPage ? 800 : 500,
@@ -307,8 +353,6 @@ function P6KecDetail({ kecamatan, data, color }) {
                 }}
               >{pg}</button>
             ))}
-
-            {/* Next */}
             <button
               disabled={detailPage === totalDetailPages}
               onClick={() => setDetailPage(p => p + 1)}
@@ -331,7 +375,6 @@ function P6KecDetail({ kecamatan, data, color }) {
   );
 }
 
-// ── Helper: bangun array nomor halaman dengan ellipsis ──
 function buildPageNums(current, total) {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
   const pages = [1];
@@ -344,7 +387,6 @@ function buildPageNums(current, total) {
   return pages;
 }
 
-// ── Tombol paginasi ──
 function PagBtn({ children, onClick, disabled, active, title }) {
   return (
     <button
@@ -383,22 +425,21 @@ export default function Overview({ kecamatanList }) {
   const [refreshing, setRefreshing] = useState(false);
   const [belumExpanded, setBelumExpanded] = useState(false);
 
-  // State untuk P6 detail toggle per kecamatan
-  const [p6Detail, setP6Detail] = useState({});          // { [nmkec]: [rows] }
+  const [p6Detail, setP6Detail] = useState({});
   const [p6DetailLoading, setP6DetailLoading] = useState(false);
-  const [p6ExpandedKec, setP6ExpandedKec] = useState({}); // { [nmkec]: bool }
+  const [p6ExpandedKec, setP6ExpandedKec] = useState({});
 
-  // Paginasi card "Urutan Kecamatan — P6 Tertinggi"
   const P6_PER_PAGE = 5;
   const [p6Page, setP6Page] = useState(1);
 
-  // Rekap per Desa — search, filter kecamatan, paginasi
   const REKAP_PER_PAGE = 10;
   const [rekapQuery, setRekapQuery] = useState('');
   const [rekapKecFilter, setRekapKecFilter] = useState('');
-  const [rekapSortCol, setRekapSortCol] = useState('kecamatan'); // kecamatan | desa | p1 | p2 | p3 | bangunan | belum | sls
+  const [rekapSortCol, setRekapSortCol] = useState('kecamatan');
   const [rekapSortDir, setRekapSortDir] = useState('asc');
   const [rekapPage, setRekapPage] = useState(1);
+  // ✅ FIX: state boolean terpisah untuk checkbox "Urutkan P6"
+  const [sortByP6, setSortByP6] = useState(false);
 
   const [statsRef, statsInView] = useInView(0.1);
   const [chartRef, chartInView] = useInView(0.1);
@@ -425,23 +466,23 @@ export default function Overview({ kecamatanList }) {
         total: (d.total_usaha_submit || 0) + (d.total_keluarga_submit || 0),
         laporan: d.jumlah_laporan || 0,
       })) : []);
-      // Reset P6 detail saat data utama reload
       setP6Detail({});
       setP6ExpandedKec({});
       setP6Page(1);
-      // Reset rekap table
       setRekapQuery('');
       setRekapKecFilter('');
       setRekapPage(1);
+      setSortByP6(false);
+      setRekapSortCol('kecamatan');
+      setRekapSortDir('asc');
     } catch { }
     setLoading(false); setRefreshing(false);
   };
 
   useEffect(() => { load(); }, [tanggal, kecamatan]);
 
-  // Load detail P6 (lazy — hanya saat toggle dibuka pertama kali)
   const loadP6Detail = async () => {
-    if (Object.keys(p6Detail).length > 0) return; // sudah ada, skip
+    if (Object.keys(p6Detail).length > 0) return;
     setP6DetailLoading(true);
     try {
       const p = { tanggal };
@@ -456,7 +497,6 @@ export default function Overview({ kecamatanList }) {
   };
 
   const toggleP6Kec = async (kecName) => {
-    // Muat data jika belum ada
     if (Object.keys(p6Detail).length === 0) {
       await loadP6Detail();
     }
@@ -521,7 +561,7 @@ export default function Overview({ kecamatanList }) {
           label="Kecamatan"
           placeholder="— Semua Kecamatan —"
           value={kecamatan}
-          onChange={setKecamatan}
+          onChange={setKecamatan}   /* ✅ SearchSelect sudah kirim string langsung */
           options={Array.isArray(kecamatanList) ? kecamatanList : []}
         />
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
@@ -702,8 +742,6 @@ export default function Overview({ kecamatanList }) {
           ═══════════════════════════════════════════════════ */}
           {totalBelum > 0 && (
             <div ref={belumRef}>
-
-              {/* Divider header */}
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 12,
                 margin: '8px 0 16px',
@@ -729,8 +767,6 @@ export default function Overview({ kecamatanList }) {
 
               {/* Row 1: Gauge + Bar kecamatan + Trend */}
               <div className="g3 mb animate-fadein" style={{ animationDelay: '0.05s', alignItems: 'start' }}>
-
-                {/* Gauge card */}
                 <div className="card" style={{
                   background: 'linear-gradient(135deg,rgba(244,63,94,0.12),rgba(251,113,133,0.05))',
                   border: '1px solid rgba(244,63,94,0.25)',
@@ -768,7 +804,6 @@ export default function Overview({ kecamatanList }) {
                   </div>
                 </div>
 
-                {/* Bar P6 per kecamatan */}
                 <div className="card" style={{
                   background: 'linear-gradient(135deg,rgba(244,63,94,0.08),rgba(251,113,133,0.03))',
                   border: '1px solid rgba(244,63,94,0.2)',
@@ -805,7 +840,6 @@ export default function Overview({ kecamatanList }) {
                   )}
                 </div>
 
-                {/* Trend P6 harian */}
                 <div className="card" style={{
                   background: 'linear-gradient(135deg,rgba(244,63,94,0.08),rgba(251,113,133,0.03))',
                   border: '1px solid rgba(244,63,94,0.2)',
@@ -850,7 +884,7 @@ export default function Overview({ kecamatanList }) {
                 </div>
               </div>
 
-              {/* ── Progress bar per kecamatan + TOGGLE DETAIL PETUGAS ── */}
+              {/* Progress bar P6 per kecamatan + toggle detail */}
               {belumKecData.length > 0 && (() => {
                 const totalPages = Math.ceil(belumKecData.length / P6_PER_PAGE);
                 const pageStart = (p6Page - 1) * P6_PER_PAGE;
@@ -861,7 +895,6 @@ export default function Overview({ kecamatanList }) {
                     animationDelay: '0.15s',
                     border: '1px solid rgba(244,63,94,0.2)',
                   }}>
-                    {/* ── Card header ── */}
                     <div className="card-head">
                       <div className="card-title-g">
                         <div className="c-icon ci-r">🎯</div>
@@ -881,7 +914,6 @@ export default function Overview({ kecamatanList }) {
                       </div>
                     </div>
 
-                    {/* ── Daftar kecamatan halaman ini ── */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                       {pageSlice.map((d, idx) => {
                         const globalIdx = pageStart + idx;
@@ -892,7 +924,6 @@ export default function Overview({ kecamatanList }) {
 
                         return (
                           <div key={d.fullName} className="animate-fadein" style={{ animationDelay: `${idx * 55}ms` }}>
-                            {/* Row: nomor + tombol toggle + jumlah */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                               <button
                                 onClick={() => toggleP6Kec(d.fullName)}
@@ -921,7 +952,6 @@ export default function Overview({ kecamatanList }) {
                                   marginLeft: 2,
                                 }}>▼</span>
                               </button>
-
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 {!isExpanded && (
                                   <span style={{ fontSize: 10, color: 'var(--text3)', fontStyle: 'italic' }}>
@@ -934,7 +964,6 @@ export default function Overview({ kecamatanList }) {
                               </div>
                             </div>
 
-                            {/* Progress bar */}
                             <div className="pw" style={{ height: 7, borderRadius: 8 }}>
                               <div style={{
                                 height: '100%',
@@ -945,7 +974,6 @@ export default function Overview({ kecamatanList }) {
                               }} />
                             </div>
 
-                            {/* Panel detail petugas (collapsible) — DENGAN PAGINASI */}
                             {isExpanded && (
                               <P6KecDetail
                                 kecamatan={d.fullName}
@@ -958,7 +986,6 @@ export default function Overview({ kecamatanList }) {
                       })}
                     </div>
 
-                    {/* ── Kontrol paginasi kecamatan ── */}
                     {totalPages > 1 && (
                       <div style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -971,7 +998,6 @@ export default function Overview({ kecamatanList }) {
                           &nbsp;·&nbsp;
                           {pageStart + 1}–{Math.min(pageStart + P6_PER_PAGE, belumKecData.length)} dari {belumKecData.length} kecamatan
                         </span>
-
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           <button
                             disabled={p6Page === 1}
@@ -987,29 +1013,22 @@ export default function Overview({ kecamatanList }) {
                               transition: 'all 0.15s', opacity: p6Page === 1 ? 0.4 : 1,
                             }}
                           >‹</button>
-
                           {Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => (
                             <button
                               key={pg}
                               onClick={() => { setP6Page(pg); setP6ExpandedKec({}); }}
                               style={{
                                 minWidth: 32, height: 32, borderRadius: 7,
-                                border: pg === p6Page
-                                  ? '1px solid rgba(244,63,94,0.5)'
-                                  : '1px solid rgba(244,63,94,0.18)',
-                                background: pg === p6Page
-                                  ? 'rgba(244,63,94,0.18)'
-                                  : 'transparent',
+                                border: pg === p6Page ? '1px solid rgba(244,63,94,0.5)' : '1px solid rgba(244,63,94,0.18)',
+                                background: pg === p6Page ? 'rgba(244,63,94,0.18)' : 'transparent',
                                 color: pg === p6Page ? '#fda4af' : 'var(--text3)',
                                 fontWeight: pg === p6Page ? 800 : 500,
                                 cursor: 'pointer', fontFamily: 'inherit', fontSize: 12,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                transition: 'all 0.15s',
-                                padding: '0 6px',
+                                transition: 'all 0.15s', padding: '0 6px',
                               }}
                             >{pg}</button>
                           ))}
-
                           <button
                             disabled={p6Page === totalPages}
                             onClick={() => { setP6Page(p => p + 1); setP6ExpandedKec({}); }}
@@ -1031,7 +1050,7 @@ export default function Overview({ kecamatanList }) {
                 );
               })()}
 
-              {/* Tabel detail desa dengan P6 */}
+              {/* Tabel detail desa P6 */}
               {desaBelumList.length > 0 && (
                 <div className="card mb animate-fadein" style={{
                   animationDelay: '0.25s',
@@ -1072,11 +1091,7 @@ export default function Overview({ kecamatanList }) {
                               <td style={{ fontSize: 12, fontWeight: 700, color: 'var(--text3)' }}>{i + 1}</td>
                               <td style={{ fontSize: 12, color: 'var(--text2)' }}>{r._id?.kecamatan}</td>
                               <td className="bold">{r._id?.desa}</td>
-                              <td>
-                                <span className="badge br" style={{ fontSize: 12 }}>
-                                  {belumDesa.toLocaleString('id-ID')}
-                                </span>
-                              </td>
+                              <td><span className="badge br" style={{ fontSize: 12 }}>{belumDesa.toLocaleString('id-ID')}</span></td>
                               <td style={{ color: 'var(--text2)' }}>{submitDesa.toLocaleString('id-ID')}</td>
                               <td>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1085,8 +1100,7 @@ export default function Overview({ kecamatanList }) {
                                       <div style={{
                                         height: '100%', width: `${pctDesa}%`,
                                         background: `linear-gradient(90deg,${barColor},${barColor}88)`,
-                                        borderRadius: 4,
-                                        transition: 'width 0.8s ease',
+                                        borderRadius: 4, transition: 'width 0.8s ease',
                                       }} />
                                     </div>
                                   </div>
@@ -1110,8 +1124,7 @@ export default function Overview({ kecamatanList }) {
                           border: '1px solid rgba(244,63,94,0.25)',
                           borderRadius: 8, color: '#fda4af',
                           padding: '7px 20px', fontSize: 12, fontWeight: 700,
-                          cursor: 'pointer', fontFamily: 'inherit',
-                          transition: 'all 0.15s',
+                          cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
                         }}
                       >
                         {belumExpanded
@@ -1129,10 +1142,12 @@ export default function Overview({ kecamatanList }) {
               REKAP PER DESA — search + filter + sort + paginasi
           ══════════════════════════════════════════ */}
           {safeRekap.length > 0 && (() => {
-            // ── List kecamatan unik untuk filter dropdown ──
             const kecOptions = [...new Set(safeRekap.map(r => r._id?.kecamatan).filter(Boolean))].sort();
 
-            // ── Filter: query teks + filter kecamatan ──
+            // ✅ FIX: gunakan sortByP6 state terpisah untuk sort logic
+            const effectiveSortCol = sortByP6 ? 'belum' : rekapSortCol;
+            const effectiveSortDir = sortByP6 ? 'desc' : rekapSortDir;
+
             const afterFilter = safeRekap.filter(r => {
               const matchKec = rekapKecFilter ? r._id?.kecamatan === rekapKecFilter : true;
               if (!matchKec) return false;
@@ -1144,9 +1159,8 @@ export default function Overview({ kecamatanList }) {
               );
             });
 
-            // ── Sort ──
             const sortVal = (r) => {
-              switch (rekapSortCol) {
+              switch (effectiveSortCol) {
                 case 'desa': return (r._id?.desa || '').toLowerCase();
                 case 'kecamatan': return (r._id?.kecamatan || '').toLowerCase();
                 case 'sls': return r.jumlah_laporan || 0;
@@ -1158,20 +1172,20 @@ export default function Overview({ kecamatanList }) {
                 default: return (r._id?.kecamatan || '').toLowerCase();
               }
             };
+
             const afterSort = [...afterFilter].sort((a, b) => {
               const va = sortVal(a), vb = sortVal(b);
               const cmp = typeof va === 'string' ? va.localeCompare(vb) : va - vb;
-              return rekapSortDir === 'asc' ? cmp : -cmp;
+              return effectiveSortDir === 'asc' ? cmp : -cmp;
             });
 
-            // ── Paginasi ──
             const totalRekapPages = Math.max(1, Math.ceil(afterSort.length / REKAP_PER_PAGE));
             const safeRekapPage = Math.min(rekapPage, totalRekapPages);
             const rekapStart = (safeRekapPage - 1) * REKAP_PER_PAGE;
             const pageRows = afterSort.slice(rekapStart, rekapStart + REKAP_PER_PAGE);
 
-            // Handler sort: toggle arah jika kolom sama, set asc jika beda
             const handleSort = (col) => {
+              setSortByP6(false);
               if (col === rekapSortCol) {
                 setRekapSortDir(d => d === 'asc' ? 'desc' : 'asc');
               } else {
@@ -1182,22 +1196,27 @@ export default function Overview({ kecamatanList }) {
             };
 
             const SortIcon = ({ col }) => {
-              if (col !== rekapSortCol) return <span style={{ opacity: 0.3, fontSize: 9 }}>⇅</span>;
-              return <span style={{ fontSize: 9, color: '#a5b4fc' }}>{rekapSortDir === 'asc' ? '▲' : '▼'}</span>;
+              const activeCol = sortByP6 ? 'belum' : rekapSortCol;
+              const activeDir = sortByP6 ? 'desc' : rekapSortDir;
+              if (col !== activeCol) return <span style={{ opacity: 0.3, fontSize: 9 }}>⇅</span>;
+              return <span style={{ fontSize: 9, color: '#a5b4fc' }}>{activeDir === 'asc' ? '▲' : '▼'}</span>;
             };
 
-            const thStyle = (col) => ({
-              cursor: 'pointer',
-              userSelect: 'none',
-              whiteSpace: 'nowrap',
-              transition: 'color 0.15s',
-              color: col === rekapSortCol ? '#a5b4fc' : undefined,
-            });
+            const thStyle = (col) => {
+              const activeCol = sortByP6 ? 'belum' : rekapSortCol;
+              return {
+                cursor: 'pointer',
+                userSelect: 'none',
+                whiteSpace: 'nowrap',
+                transition: 'color 0.15s',
+                color: col === activeCol ? '#a5b4fc' : undefined,
+              };
+            };
+
+            const hasActiveFilter = rekapQuery || rekapKecFilter || sortByP6 || rekapSortCol !== 'kecamatan';
 
             return (
               <div className="card animate-fadein" style={{ animationDelay: '0.45s' }}>
-
-                {/* ── Card head ── */}
                 <div className="card-head" style={{ flexWrap: 'wrap', gap: 10 }}>
                   <div className="card-title-g">
                     <div className="c-icon ci-b">📍</div>
@@ -1213,26 +1232,36 @@ export default function Overview({ kecamatanList }) {
                   <span className="badge bp">{afterFilter.length} desa</span>
                 </div>
 
-                {/* ── Toolbar: search + filter kecamatan ── */}
+                {/* ── Toolbar: search + filter kecamatan + checkbox ── */}
                 <div style={{
                   display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center',
                   marginBottom: 14,
-                  padding: '10px 14px',
+                  padding: '12px 14px',
                   background: 'var(--surface)',
                   borderRadius: 'var(--r-sm)',
                   border: '1px solid var(--border)',
                 }}>
-                  {/* Search box */}
+                  {/* Search box — tinggi 44px sama dengan SearchSelect trigger */}
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 8,
                     flex: '1 1 200px', minWidth: 180,
-                    padding: '0 10px',
+                    padding: '0 12px',
                     background: 'var(--surface2)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 8,
-                    height: 36,
-                  }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+                    border: '1.5px solid var(--border)',
+                    borderRadius: 9,
+                    height: 44,           /* ✅ seragam dengan ss-trigger */
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
+                  }}
+                    onFocusCapture={e => {
+                      e.currentTarget.style.borderColor = 'rgba(99,102,241,0.55)';
+                      e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.13)';
+                    }}
+                    onBlurCapture={e => {
+                      e.currentTarget.style.borderColor = 'var(--border)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                       stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                       style={{ flexShrink: 0 }}>
                       <circle cx="11" cy="11" r="8" />
@@ -1253,11 +1282,11 @@ export default function Overview({ kecamatanList }) {
                       <button
                         onClick={() => { setRekapQuery(''); setRekapPage(1); }}
                         style={{
-                          width: 18, height: 18, border: 'none', padding: 0,
+                          width: 20, height: 20, border: 'none', padding: 0,
                           background: 'var(--surface3)', borderRadius: '50%',
                           color: 'var(--text3)', cursor: 'pointer',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0,
+                          flexShrink: 0, transition: 'all 0.15s',
                         }}
                       >
                         <svg width="9" height="9" viewBox="0 0 24 24" fill="none"
@@ -1268,61 +1297,50 @@ export default function Overview({ kecamatanList }) {
                     )}
                   </div>
 
-                  {/* Filter kecamatan dropdown */}
-                  <div style={{ flex: '1 1 180px', minWidth: 160 }}>
-                    <SearchSelect
-                      className="ctrl-sel"
-                      style={{ width: '100%', padding: '8px 28px 8px 10px', fontSize: 12, height: 36 }}
-                      label="Kecamatan"
-                      placeholder="— Semua Kecamatan —"
-                      value={rekapKecFilter}
-                      onChange={e => { setRekapKecFilter(e.target.value); setRekapPage(1); }}
-                      options={Array.isArray(kecamatanList) ? kecamatanList : []}
-                    />
-                  </div>
+                  {/* ✅ FIX: SearchSelect dengan onChange menerima string langsung */}
+                  <SearchSelect
+                    className="ss-kec"
+                    label="Kecamatan"
+                    placeholder="— Semua Kecamatan —"
+                    value={rekapKecFilter}
+                    onChange={(val) => { setRekapKecFilter(val); setRekapPage(1); }}
+                    options={Array.isArray(kecamatanList) ? kecamatanList : []}
+                  />
 
-                  {/* Filter: hanya yang ada P6 */}
-                  <label style={{
-                    display: 'flex', alignItems: 'center', gap: 7,
-                    fontSize: 12, fontWeight: 600, color: 'var(--text2)',
-                    cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={rekapSortCol === 'belum' && rekapKecFilter === rekapKecFilter}
-                      onChange={e => {
-                        // Toggle filter "hanya ada P6" via quick-sort ke kolom belum desc
-                        if (e.target.checked) {
-                          setRekapSortCol('belum');
-                          setRekapSortDir('desc');
-                        } else {
-                          setRekapSortCol('kecamatan');
-                          setRekapSortDir('asc');
-                        }
-                        setRekapPage(1);
-                      }}
-                      style={{ accentColor: '#f43f5e', width: 14, height: 14 }}
-                    />
-                    <span style={{ color: '#fda4af' }}>Urutkan P6 terbanyak</span>
-                  </label>
+                  {/* ✅ Custom Checkbox dengan animasi estetik */}
+                  <CustomCheckbox
+                    checked={sortByP6}
+                    onChange={() => {
+                      setSortByP6(v => !v);
+                      setRekapPage(1);
+                    }}
+                    label="Urutkan P6 terbanyak"
+                    color="#f43f5e"
+                    colorBg="rgba(244,63,94,0.1)"
+                    colorBorder="rgba(244,63,94,0.3)"
+                  />
 
-                  {/* Tombol reset filter */}
-                  {(rekapQuery || rekapKecFilter || rekapSortCol !== 'kecamatan') && (
+                  {/* Reset filter */}
+                  {hasActiveFilter && (
                     <button
                       onClick={() => {
                         setRekapQuery('');
                         setRekapKecFilter('');
                         setRekapSortCol('kecamatan');
                         setRekapSortDir('asc');
+                        setSortByP6(false);
                         setRekapPage(1);
                       }}
                       style={{
-                        padding: '6px 12px', borderRadius: 7, fontSize: 11, fontWeight: 700,
-                        background: 'rgba(244,63,94,0.08)', border: '1px solid rgba(244,63,94,0.2)',
+                        padding: '0 14px', height: 44,    /* ✅ tinggi seragam */
+                        borderRadius: 9, fontSize: 12, fontWeight: 700,
+                        background: 'rgba(244,63,94,0.08)', border: '1.5px solid rgba(244,63,94,0.25)',
                         color: '#fda4af', cursor: 'pointer', fontFamily: 'inherit',
-                        display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                        display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+                        transition: 'all 0.15s',
                       }}
+                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(244,63,94,0.16)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(244,63,94,0.08)'; }}
                     >
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -1333,7 +1351,7 @@ export default function Overview({ kecamatanList }) {
                   )}
                 </div>
 
-                {/* ── Tabel ── */}
+                {/* Tabel */}
                 {pageRows.length === 0 ? (
                   <div style={{ padding: '32px 0', textAlign: 'center' }}>
                     <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
@@ -1350,38 +1368,20 @@ export default function Overview({ kecamatanList }) {
                       <thead>
                         <tr>
                           <th style={{ width: 36 }}>#</th>
-                          <th style={thStyle('kecamatan')} onClick={() => handleSort('kecamatan')}>
-                            Kecamatan <SortIcon col="kecamatan" />
-                          </th>
-                          <th style={thStyle('desa')} onClick={() => handleSort('desa')}>
-                            Desa <SortIcon col="desa" />
-                          </th>
-                          <th style={thStyle('sls')} onClick={() => handleSort('sls')}>
-                            SLS Lapor <SortIcon col="sls" />
-                          </th>
-                          <th style={thStyle('p1')} onClick={() => handleSort('p1')}>
-                            P1 Keluarga <SortIcon col="p1" />
-                          </th>
-                          <th style={thStyle('p2')} onClick={() => handleSort('p2')}>
-                            P2 Usaha <SortIcon col="p2" />
-                          </th>
-                          <th style={thStyle('p3')} onClick={() => handleSort('p3')}>
-                            P3 BKU <SortIcon col="p3" />
-                          </th>
-                          <th style={thStyle('bangunan')} onClick={() => handleSort('bangunan')}>
-                            Bangunan <SortIcon col="bangunan" />
-                          </th>
-                          <th style={thStyle('belum')} onClick={() => handleSort('belum')}>
-                            P6 Belum <SortIcon col="belum" />
-                          </th>
+                          <th style={thStyle('kecamatan')} onClick={() => handleSort('kecamatan')}>Kecamatan <SortIcon col="kecamatan" /></th>
+                          <th style={thStyle('desa')} onClick={() => handleSort('desa')}>Desa <SortIcon col="desa" /></th>
+                          <th style={thStyle('sls')} onClick={() => handleSort('sls')}>SLS Lapor <SortIcon col="sls" /></th>
+                          <th style={thStyle('p1')} onClick={() => handleSort('p1')}>P1 Keluarga <SortIcon col="p1" /></th>
+                          <th style={thStyle('p2')} onClick={() => handleSort('p2')}>P2 Usaha <SortIcon col="p2" /></th>
+                          <th style={thStyle('p3')} onClick={() => handleSort('p3')}>P3 BKU <SortIcon col="p3" /></th>
+                          <th style={thStyle('bangunan')} onClick={() => handleSort('bangunan')}>Bangunan <SortIcon col="bangunan" /></th>
+                          <th style={thStyle('belum')} onClick={() => handleSort('belum')}>P6 Belum <SortIcon col="belum" /></th>
                         </tr>
                       </thead>
                       <tbody>
                         {pageRows.map((r, i) => (
                           <tr key={i} style={{ animation: `fadeInUp 0.3s ease ${i * 25}ms both` }}>
-                            <td style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
-                              {rekapStart + i + 1}
-                            </td>
+                            <td style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>{rekapStart + i + 1}</td>
                             <td className="bold">{r._id?.kecamatan}</td>
                             <td>{r._id?.desa}</td>
                             <td><span className="badge bp">{r.jumlah_laporan}</span></td>
@@ -1401,7 +1401,7 @@ export default function Overview({ kecamatanList }) {
                   </div>
                 )}
 
-                {/* ── Paginasi footer ── */}
+                {/* Paginasi */}
                 {totalRekapPages > 1 && (
                   <div style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -1409,7 +1409,6 @@ export default function Overview({ kecamatanList }) {
                     borderTop: '1px solid var(--border)',
                     gap: 8, flexWrap: 'wrap',
                   }}>
-                    {/* Info */}
                     <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
                       Halaman{' '}
                       <strong style={{ color: 'var(--text2)' }}>{safeRekapPage}</strong>
@@ -1422,8 +1421,6 @@ export default function Overview({ kecamatanList }) {
                       {' '}dari{' '}
                       <strong style={{ color: 'var(--text2)' }}>{afterSort.length}</strong>
                     </span>
-
-                    {/* Tombol navigasi */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                       <PagBtn disabled={safeRekapPage === 1} onClick={() => setRekapPage(1)} title="Pertama">«</PagBtn>
                       <PagBtn disabled={safeRekapPage === 1} onClick={() => setRekapPage(p => p - 1)} title="Sebelumnya">‹</PagBtn>
