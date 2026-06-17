@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -57,10 +57,10 @@ function PodiumCard({ person, rank, maxVal, delay }) {
   if (!person) return <div/>;
   return (
     <div className="podium-card animate-fadein" style={{
-      animationDelay: `${delay}ms`, textAlign: 'center', padding: '20px 12px 16px',
-      background: gradients[rank], border: `1px solid ${borders[rank]}`,
-      borderRadius: 'var(--r)', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', gap: 6, position: 'relative',
+      animationDelay:`${delay}ms`, textAlign:'center', padding:'20px 12px 16px',
+      background:gradients[rank], border:`1px solid ${borders[rank]}`,
+      borderRadius:'var(--r)', display:'flex', flexDirection:'column',
+      alignItems:'center', gap:6, position:'relative',
     }}>
       <div style={{ position:'absolute', bottom:0, left:0, right:0, height:heights[rank],
         background:`linear-gradient(0deg,${colors[rank]}22,transparent)`,
@@ -76,7 +76,7 @@ function PodiumCard({ person, rank, maxVal, delay }) {
       <div style={{ fontSize:10, color:'var(--text3)' }}>unit terdata</div>
       <div className="pw" style={{ width:'80%', height:4, marginTop:4 }}>
         <div className="pf" style={{ height:'100%',
-          width: ((person.total_terdata / maxVal) * 100) + '%',
+          width:`${((person.total_terdata / maxVal) * 100)}%`,
           background:`linear-gradient(90deg,${colors[rank]},${colors[rank]}88)`,
           transition:'width 1s ease' }}/>
       </div>
@@ -101,64 +101,64 @@ export default function Leaderboard({ kecamatanList }) {
     const p = { tanggal_dari: dari, tanggal_sampai: sampai };
     if (kec) p.kecamatan = kec;
     dashApi.getLeaderboard(p)
-      // ✅ FIX: pastikan selalu array, jaga dari r.data = null / object
+      // ✅ FIX 1: guard Array.isArray — r.data bisa null/undefined/object dari API
       .then(r => setData(Array.isArray(r.data) ? r.data : []))
       .catch(() => setData([]))
       .finally(() => setLoading(false));
   }, [dari, sampai, kec]);
 
-  const fmt    = n => (n || 0).toLocaleString('id-ID');
-  const maxVal = data[0]?.total_terdata || 1;
+  const fmt = n => (n || 0).toLocaleString('id-ID');
 
-  // ✅ FIX: guard Array.isArray sebelum semua operasi
+  // ✅ FIX 2: selalu pakai safeData untuk semua operasi array
   const safeData = Array.isArray(data) ? data : [];
+  const maxVal   = safeData[0]?.total_terdata || 1;
+  const maxHari  = safeData[0]?.hari_lapor    || 1;
 
-  // Chart top 10
+  // Chart data top 10
   const chartData = safeData.slice(0, 10).map((d, i) => ({
     name:     (d._id || '').split(' ')[0],
     usaha:    d.total_usaha    || 0,
     keluarga: d.total_keluarga || 0,
     bku:      d.total_bku      || 0,
     total:    d.total_terdata  || 0,
-    fill: COLORS[i] || '#6366f1',
+    fill:     COLORS[i] || '#6366f1',
   }));
 
-  // ✅ FIX UTAMA: format radarData yang benar untuk RadarChart
-  // RadarChart butuh array of objects di mana setiap object = 1 baris (1 subject/axis)
-  // dengan key per orang. Format lama salah karena radarData.map(d=>[d.name, d.X])
-  // menghasilkan nested array, bukan object.
+  // ✅ FIX 3: format radarData yang BENAR untuk RadarChart
+  //
+  // LAMA (SALAH): radarData = data.slice(0,5).map(d => ({ name, Usaha, ... }))
+  //   lalu di JSX: RadarChart data={[ { subject:'Usaha', ...Object.fromEntries(radarData.map(...)) } ]}
+  //   → radarData.map() di dalam JSX prop crash jika radarData undefined → w.reduce error
+  //
+  // BARU (BENAR): radarData langsung dalam format Recharts:
+  //   setiap item = 1 baris (1 sumbu axis), dengan nilai per orang sebagai key
+  //   { subject: 'Usaha (P2)', 'Budi': 80, 'Ani': 60, ... }
   const top5 = safeData.slice(0, 5);
-  const maxHari = safeData[0]?.hari_lapor || 1;
 
-  // Setiap item = 1 sumbu radar, berisi nilai semua orang untuk sumbu itu
   const radarData = top5.length >= 3
     ? [
         {
           subject: 'Usaha (P2)',
           ...Object.fromEntries(
-            top5.map(d => [(d._id || '').split(' ')[0],
-              Math.round(((d.total_usaha || 0) / maxVal) * 100)])
+            top5.map(d => [(d._id || '').split(' ')[0], Math.round(((d.total_usaha || 0) / maxVal) * 100)])
           ),
         },
         {
           subject: 'Keluarga (P1)',
           ...Object.fromEntries(
-            top5.map(d => [(d._id || '').split(' ')[0],
-              Math.round(((d.total_keluarga || 0) / maxVal) * 100)])
+            top5.map(d => [(d._id || '').split(' ')[0], Math.round(((d.total_keluarga || 0) / maxVal) * 100)])
           ),
         },
         {
           subject: 'BKU (P3)',
           ...Object.fromEntries(
-            top5.map(d => [(d._id || '').split(' ')[0],
-              Math.round(((d.total_bku || 0) / maxVal) * 100)])
+            top5.map(d => [(d._id || '').split(' ')[0], Math.round(((d.total_bku || 0) / maxVal) * 100)])
           ),
         },
         {
           subject: 'Keaktifan',
           ...Object.fromEntries(
-            top5.map(d => [(d._id || '').split(' ')[0],
-              Math.round(((d.hari_lapor || 0) / maxHari) * 100)])
+            top5.map(d => [(d._id || '').split(' ')[0], Math.round(((d.hari_lapor || 0) / maxHari) * 100)])
           ),
         },
       ]
@@ -192,8 +192,10 @@ export default function Leaderboard({ kecamatanList }) {
               <div className="card-head">
                 <div className="card-title-g">
                   <div className="c-icon ci-a">🏆</div>
-                  <div><div className="c-title">Top 3 Petugas Terbaik</div>
-                    <div className="c-sub">Berdasarkan total unit terdata (P1+P2+P3)</div></div>
+                  <div>
+                    <div className="c-title">Top 3 Petugas Terbaik</div>
+                    <div className="c-sub">Berdasarkan total unit terdata (P1+P2+P3)</div>
+                  </div>
                 </div>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1.2fr 1fr', gap:14, alignItems:'end' }}>
@@ -209,9 +211,12 @@ export default function Leaderboard({ kecamatanList }) {
             {chartData.length > 0 && (
               <div className="card animate-fadein" style={{ animationDelay:'0.15s' }}>
                 <div className="card-head">
-                  <div className="card-title-g"><div className="c-icon ci-p">📊</div>
-                    <div><div className="c-title">Perbandingan Top 10 PCL</div>
-                      <div className="c-sub">P1 Keluarga + P2 Usaha + P3 BKU</div></div>
+                  <div className="card-title-g">
+                    <div className="c-icon ci-p">📊</div>
+                    <div>
+                      <div className="c-title">Perbandingan Top 10 PCL</div>
+                      <div className="c-sub">P1 Keluarga + P2 Usaha + P3 BKU</div>
+                    </div>
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height={230}>
@@ -229,13 +234,17 @@ export default function Leaderboard({ kecamatanList }) {
               </div>
             )}
 
-            {/* ✅ FIX: pakai radarData yang sudah benar formatnya, bukan transform ulang di sini */}
+            {/* ✅ FIX 4: RadarChart hanya render jika radarData valid.
+                data prop = radarData langsung (sudah format benar), tidak ada transform di JSX. */}
             {radarData.length >= 3 && top5.length >= 3 && (
               <div className="card animate-fadein" style={{ animationDelay:'0.25s' }}>
                 <div className="card-head">
-                  <div className="card-title-g"><div className="c-icon ci-g">🕸️</div>
-                    <div><div className="c-title">Profil Top 5 PCL</div>
-                      <div className="c-sub">Performa multi-dimensi (% relatif)</div></div>
+                  <div className="card-title-g">
+                    <div className="c-icon ci-g">🕸️</div>
+                    <div>
+                      <div className="c-title">Profil Top 5 PCL</div>
+                      <div className="c-sub">Performa multi-dimensi (% relatif)</div>
+                    </div>
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height={230}>
@@ -265,13 +274,15 @@ export default function Leaderboard({ kecamatanList }) {
             <div className="card-head">
               <div className="card-title-g">
                 <div className="c-icon ci-b">🏅</div>
-                <div><div className="c-title">Progress PCL vs Peringkat 1</div>
-                  <div className="c-sub">Persentase capaian relatif total unit terdata</div></div>
+                <div>
+                  <div className="c-title">Progress PCL vs Peringkat 1</div>
+                  <div className="c-sub">Persentase capaian relatif total unit terdata</div>
+                </div>
               </div>
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {safeData.slice(0, 10).map((r, i) => {
-                const pct = Math.round(((r.total_terdata || 0) / maxVal) * 100);
+                const pct      = Math.round(((r.total_terdata || 0) / maxVal) * 100);
                 const barColor = i === 0 ? '#f59e0b' : i < 3 ? '#6366f1' : '#10b981';
                 return (
                   <div key={r._id || i} className="animate-fadein" style={{ animationDelay:`${i * 60}ms` }}>
@@ -283,7 +294,7 @@ export default function Leaderboard({ kecamatanList }) {
                       <span style={{ fontWeight:800, color:barColor }}>{fmt(r.total_terdata)}</span>
                     </div>
                     <div className="pw" style={{ height:6 }}>
-                      <div className="pf" style={{ height:'100%', width:pct + '%',
+                      <div className="pf" style={{ height:'100%', width:`${pct}%`,
                         background:`linear-gradient(90deg,${barColor},${barColor}88)`,
                         transition:`width 0.9s cubic-bezier(0.34,1.56,0.64,1) ${i*60}ms` }}/>
                     </div>
@@ -298,8 +309,10 @@ export default function Leaderboard({ kecamatanList }) {
             <div className="card-head">
               <div className="card-title-g">
                 <div className="c-icon ci-g">📋</div>
-                <div><div className="c-title">Ranking Lengkap</div>
-                  <div className="c-sub">{safeData.length} PCL aktif</div></div>
+                <div>
+                  <div className="c-title">Ranking Lengkap</div>
+                  <div className="c-sub">{safeData.length} PCL aktif</div>
+                </div>
               </div>
               <span className="badge bp">{safeData.length} PCL</span>
             </div>
