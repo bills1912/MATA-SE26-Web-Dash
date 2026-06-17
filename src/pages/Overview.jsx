@@ -78,7 +78,6 @@ function StatCard({ icon, label, value, className, delay = 0, inView }) {
   );
 }
 
-// ── Gauge ring untuk P6 ──────────────────────────────────
 function BelumGauge({ pct, total }) {
   const r = 52;
   const circ = 2 * Math.PI * r;
@@ -116,6 +115,131 @@ function BelumGauge({ pct, total }) {
   );
 }
 
+// ── Komponen panel detail petugas P6 per kecamatan ──────────────────────────
+function P6KecDetail({ kecamatan, data, color }) {
+  const rows = data || [];
+  if (rows.length === 0) return null;
+
+  return (
+    <div style={{
+      marginTop: 10,
+      borderRadius: 10,
+      border: `1px solid ${color}33`,
+      background: `${color}08`,
+      overflow: 'hidden',
+      animation: 'fadeInUp 0.3s ease both',
+    }}>
+      {/* Header mini */}
+      <div style={{
+        padding: '8px 14px',
+        background: `${color}14`,
+        borderBottom: `1px solid ${color}22`,
+        fontSize: 11,
+        fontWeight: 700,
+        color: color,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+      }}>
+        <span>👤</span>
+        <span>Detail Petugas Belum Submit — {kecamatan}</span>
+        <span style={{
+          marginLeft: 'auto',
+          background: `${color}22`,
+          border: `1px solid ${color}44`,
+          borderRadius: 10,
+          padding: '1px 8px',
+          fontSize: 10,
+          fontWeight: 800,
+        }}>{rows.length} entri</span>
+      </div>
+
+      {/* Tabel petugas */}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          fontSize: 12,
+          minWidth: 480,
+        }}>
+          <thead>
+            <tr>
+              {['Desa', 'SLS', 'PCL (Pencacah)', 'PML (Pengawas)', 'Jml Belum', 'Catatan P6'].map(h => (
+                <th key={h} style={{
+                  padding: '7px 12px',
+                  textAlign: 'left',
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: 'var(--text3)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  background: `${color}0d`,
+                  borderBottom: `1px solid ${color}22`,
+                  whiteSpace: 'nowrap',
+                }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} style={{
+                borderBottom: `1px solid ${color}14`,
+                animation: `fadeInUp 0.3s ease ${i * 40}ms both`,
+              }}>
+                <td style={{ padding: '9px 12px', fontWeight: 700, color: 'var(--text)' }}>{r.nmdesa}</td>
+                <td style={{ padding: '9px 12px', color: 'var(--text2)', fontSize: 11 }}>{r.nmsubsls}</td>
+                <td style={{ padding: '9px 12px' }}>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    background: 'rgba(99,102,241,0.1)',
+                    border: '1px solid rgba(99,102,241,0.2)',
+                    borderRadius: 6, padding: '3px 8px',
+                    fontSize: 11, fontWeight: 700, color: '#a5b4fc',
+                  }}>
+                    👤 {r.pencacah}
+                  </span>
+                </td>
+                <td style={{ padding: '9px 12px', fontSize: 11, color: 'var(--text3)' }}>
+                  👁️ {r.pengawas}
+                </td>
+                <td style={{ padding: '9px 12px' }}>
+                  <span style={{
+                    background: 'rgba(244,63,94,0.12)',
+                    border: '1px solid rgba(244,63,94,0.25)',
+                    borderRadius: 6, padding: '3px 8px',
+                    fontSize: 12, fontWeight: 800, color: '#fda4af',
+                  }}>{(r.jumlah_belum_submit || 0).toLocaleString('id-ID')}</span>
+                </td>
+                <td style={{ padding: '9px 12px', maxWidth: 260 }}>
+                  {r.catatan_belum_submit ? (
+                    <div style={{
+                      fontSize: 11,
+                      color: '#fcd34d',
+                      background: 'rgba(245,158,11,0.08)',
+                      border: '1px solid rgba(245,158,11,0.2)',
+                      borderRadius: 6,
+                      padding: '5px 9px',
+                      lineHeight: 1.5,
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}>
+                      💬 {r.catatan_belum_submit}
+                    </div>
+                  ) : (
+                    <span style={{ color: 'var(--text3)', fontSize: 11, fontStyle: 'italic' }}>—</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function Overview({ kecamatanList }) {
   const [tanggal, setTanggal] = useState(dayjs().format('YYYY-MM-DD'));
   const [kecamatan, setKecamatan] = useState('');
@@ -125,6 +249,12 @@ export default function Overview({ kecamatanList }) {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [belumExpanded, setBelumExpanded] = useState(false);
+
+  // State untuk P6 detail toggle per kecamatan
+  const [p6Detail, setP6Detail] = useState({});          // { [nmkec]: [rows] }
+  const [p6DetailLoading, setP6DetailLoading] = useState(false);
+  const [p6ExpandedKec, setP6ExpandedKec] = useState({}); // { [nmkec]: bool }
+
   const [statsRef, statsInView] = useInView(0.1);
   const [chartRef, chartInView] = useInView(0.1);
   const [belumRef, belumInView] = useInView(0.1);
@@ -150,11 +280,38 @@ export default function Overview({ kecamatanList }) {
         total: (d.total_usaha_submit || 0) + (d.total_keluarga_submit || 0),
         laporan: d.jumlah_laporan || 0,
       })) : []);
+      // Reset P6 detail saat data utama reload
+      setP6Detail({});
+      setP6ExpandedKec({});
     } catch { }
     setLoading(false); setRefreshing(false);
   };
 
   useEffect(() => { load(); }, [tanggal, kecamatan]);
+
+  // Load detail P6 (lazy — hanya saat toggle dibuka pertama kali)
+  const loadP6Detail = async () => {
+    if (Object.keys(p6Detail).length > 0) return; // sudah ada, skip
+    setP6DetailLoading(true);
+    try {
+      const p = { tanggal };
+      if (kecamatan) p.kecamatan = kecamatan;
+      const res = await dashApi.getP6Detail(p);
+      setP6Detail(res.data || {});
+    } catch {
+      setP6Detail({});
+    } finally {
+      setP6DetailLoading(false);
+    }
+  };
+
+  const toggleP6Kec = async (kecName) => {
+    // Muat data jika belum ada
+    if (Object.keys(p6Detail).length === 0) {
+      await loadP6Detail();
+    }
+    setP6ExpandedKec(prev => ({ ...prev, [kecName]: !prev[kecName] }));
+  };
 
   const safeRekap = Array.isArray(rekapDesa) ? rekapDesa : [];
 
@@ -179,18 +336,16 @@ export default function Overview({ kecamatanList }) {
     }, {})
   ).map(([, v]) => v).sort((a, b) => (b.usaha + b.keluarga) - (a.usaha + a.keluarga));
 
-  // ── P6 Belum Submit ──────────────────────────────────────
   const totalBelum = summary?.total_belum_submit || 0;
   const totalSubmitAll = (summary?.total_usaha_submit || 0) + (summary?.total_keluarga_submit || 0) + (summary?.total_bku_submit || 0);
   const pctBelum = totalSubmitAll + totalBelum > 0
     ? Math.round((totalBelum / (totalSubmitAll + totalBelum)) * 100)
     : 0;
 
-  // Bar chart P6 per kecamatan
   const belumKecData = Object.entries(
     safeRekap.reduce((acc, r) => {
       const k = r._id?.kecamatan || 'Lainnya';
-      if (!acc[k]) acc[k] = { name: k.length > 16 ? k.slice(0, 14) + '…' : k, belum: 0 };
+      if (!acc[k]) acc[k] = { name: k.length > 16 ? k.slice(0, 14) + '…' : k, fullName: k, belum: 0 };
       acc[k].belum += r.total_belum_submit || 0;
       return acc;
     }, {})
@@ -199,10 +354,8 @@ export default function Overview({ kecamatanList }) {
     .filter(v => v.belum > 0)
     .sort((a, b) => b.belum - a.belum);
 
-  // Trend P6 harian
   const belumTrendData = trend.filter(d => d.belum > 0);
 
-  // Daftar desa yang punya P6 > 0
   const desaBelumList = safeRekap
     .filter(r => (r.total_belum_submit || 0) > 0)
     .sort((a, b) => (b.total_belum_submit || 0) - (a.total_belum_submit || 0));
@@ -546,7 +699,7 @@ export default function Overview({ kecamatanList }) {
                 </div>
               </div>
 
-              {/* Row 2: Progress bar per kecamatan */}
+              {/* ── Progress bar per kecamatan + TOGGLE DETAIL PETUGAS ── */}
               {belumKecData.length > 0 && (
                 <div className="card mb animate-fadein" style={{
                   animationDelay: '0.15s',
@@ -557,40 +710,93 @@ export default function Overview({ kecamatanList }) {
                       <div className="c-icon ci-r">🎯</div>
                       <div>
                         <div className="c-title">Urutan Kecamatan — P6 Tertinggi</div>
-                        <div className="c-sub">Relatif terhadap kecamatan dengan P6 terbanyak</div>
+                        <div className="c-sub">Klik nama kecamatan untuk melihat detail petugas & catatan</div>
                       </div>
                     </div>
-                    <span className="badge br">{totalBelum.toLocaleString('id-ID')} unit</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span className="badge br">{totalBelum.toLocaleString('id-ID')} unit</span>
+                      {p6DetailLoading && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text3)' }}>
+                          <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                          Memuat...
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     {belumKecData.map((d, i) => {
                       const pct = Math.round((d.belum / belumKecData[0].belum) * 100);
+                      const barColor = ROSE_COLORS[i % ROSE_COLORS.length];
+                      const isExpanded = p6ExpandedKec[d.fullName];
+                      const detailRows = p6Detail[d.fullName] || [];
+
                       return (
-                        <div key={d.name} className="animate-fadein" style={{ animationDelay: `${i * 55}ms` }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5, fontSize: 12 }}>
-                            <span style={{ fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div key={d.fullName} className="animate-fadein" style={{ animationDelay: `${i * 55}ms` }}>
+                          {/* Row progress + tombol toggle */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            {/* Tombol toggle nama kecamatan */}
+                            <button
+                              onClick={() => toggleP6Kec(d.fullName)}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 7,
+                                background: isExpanded ? `${barColor}18` : 'transparent',
+                                border: isExpanded ? `1px solid ${barColor}44` : '1px solid transparent',
+                                borderRadius: 7, padding: '4px 10px 4px 6px',
+                                cursor: 'pointer', fontFamily: 'inherit',
+                                transition: 'all 0.18s',
+                              }}
+                            >
                               <span style={{
-                                width: 20, height: 20, borderRadius: 5,
-                                background: `${ROSE_COLORS[i % ROSE_COLORS.length]}30`,
-                                border: `1px solid ${ROSE_COLORS[i % ROSE_COLORS.length]}60`,
+                                width: 22, height: 22, borderRadius: 6,
+                                background: `${barColor}28`,
+                                border: `1px solid ${barColor}55`,
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 10, fontWeight: 800, color: ROSE_COLORS[i % ROSE_COLORS.length],
+                                fontSize: 10, fontWeight: 800, color: barColor,
+                                flexShrink: 0,
                               }}>{i + 1}</span>
-                              {d.name}
-                            </span>
-                            <span style={{ fontWeight: 800, color: ROSE_COLORS[i % ROSE_COLORS.length] }}>
-                              {d.belum.toLocaleString('id-ID')} unit
-                            </span>
+                              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{d.fullName}</span>
+                              {/* Chevron */}
+                              <span style={{
+                                fontSize: 10,
+                                color: barColor,
+                                transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                transition: 'transform 0.2s',
+                                marginLeft: 2,
+                              }}>▼</span>
+                            </button>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {/* Hint klik jika belum expand */}
+                              {!isExpanded && (
+                                <span style={{ fontSize: 10, color: 'var(--text3)', fontStyle: 'italic' }}>
+                                  👆 klik untuk detail
+                                </span>
+                              )}
+                              <span style={{ fontWeight: 800, color: barColor, fontSize: 13 }}>
+                                {d.belum.toLocaleString('id-ID')} unit
+                              </span>
+                            </div>
                           </div>
+
+                          {/* Progress bar */}
                           <div className="pw" style={{ height: 7, borderRadius: 8 }}>
                             <div style={{
                               height: '100%',
                               width: belumInView ? `${pct}%` : '0%',
-                              background: `linear-gradient(90deg,${ROSE_COLORS[i % ROSE_COLORS.length]},${ROSE_COLORS[i % ROSE_COLORS.length]}88)`,
+                              background: `linear-gradient(90deg,${barColor},${barColor}88)`,
                               borderRadius: 8,
                               transition: `width 0.9s cubic-bezier(0.34,1.56,0.64,1) ${i * 60}ms`,
                             }} />
                           </div>
+
+                          {/* Panel detail petugas (collapsible) */}
+                          {isExpanded && (
+                            <P6KecDetail
+                              kecamatan={d.fullName}
+                              data={detailRows}
+                              color={barColor}
+                            />
+                          )}
                         </div>
                       );
                     })}
@@ -598,7 +804,7 @@ export default function Overview({ kecamatanList }) {
                 </div>
               )}
 
-              {/* Row 3: Tabel detail desa dengan P6 */}
+              {/* Tabel detail desa dengan P6 */}
               {desaBelumList.length > 0 && (
                 <div className="card mb animate-fadein" style={{
                   animationDelay: '0.25s',

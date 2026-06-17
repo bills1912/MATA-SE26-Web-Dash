@@ -15,6 +15,9 @@ export const dashApi = {
   getLeaderboard:(p) => api.get('/leaderboard',       { params: p }),
   getBelumLapor: (p) => api.get('/belum-lapor',       { params: p }),
 
+  // ── P6 Detail — petugas & catatan belum submit ────────────
+  getP6Detail:   (p) => api.get('/laporan/p6-detail', { params: p }),
+
   // ── Wilayah (kecamatan → desa → SLS) ─────────────────────
   getKecamatan:  ()  => api.get('/wilayah/kecamatan'),
   getDesa:       (kecamatan) => api.get('/wilayah/desa', { params: { kecamatan } }),
