@@ -2,24 +2,26 @@ import { useState } from 'react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/id';
 import { useEffect } from 'react';
-import Overview    from './pages/Overview';
-import Leaderboard from './pages/Leaderboard';
-import Monitor     from './pages/Monitor';
+import Overview      from './pages/Overview';
+import Leaderboard   from './pages/Leaderboard';
+import Monitor       from './pages/Monitor';
+import InputLaporan  from './pages/InputLaporan';
 import ThemeToggle, { useTheme } from './components/ThemeToggle';
 import { dashApi } from './utils/api';
 
 dayjs.locale('id');
 
 const PAGES = [
-  { id:'overview',    label:'Overview',   icon:'📊', desc:'Ringkasan & grafik'    },
-  { id:'leaderboard', label:'Ranking PCL',icon:'🏆', desc:'Performa pencacah'     },
-  { id:'monitor',     label:'Monitor SLS',icon:'📡', desc:'Cakupan pelaporan'     },
+  { id:'overview',    label:'Overview',    icon:'📊', desc:'Ringkasan & grafik harian'    },
+  { id:'leaderboard', label:'Ranking PCL', icon:'🏆', desc:'Performa pencacah'             },
+  { id:'monitor',     label:'Monitor SLS', icon:'📡', desc:'Cakupan pelaporan hari ini'    },
+  { id:'input',       label:'Input Laporan',icon:'📝', desc:'Tambah / edit laporan SLS'   },
 ];
 
 export default function App() {
-  const [page,      setPage]      = useState('overview');
-  const [menuOpen,  setMenuOpen]  = useState(false);
-  const [kecList,   setKecList]   = useState([]);
+  const [page,     setPage]     = useState('overview');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [kecList,  setKecList]  = useState([]);
   const { theme, setTheme } = useTheme();
   const cur = PAGES.find(p => p.id === page);
 
@@ -31,7 +33,6 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* Sidebar overlay (mobile) */}
       {menuOpen && <div className="sidebar-overlay" onClick={() => setMenuOpen(false)}/>}
 
       {/* SIDEBAR */}
@@ -47,7 +48,11 @@ export default function App() {
         <nav className="sb-nav">
           <div className="sb-label">Menu Utama</div>
           {PAGES.map(p => (
-            <button key={p.id} className={'sb-btn' + (page===p.id ? ' active':'')} onClick={() => nav(p.id)}>
+            <button
+              key={p.id}
+              className={'sb-btn' + (page === p.id ? ' active' : '')}
+              onClick={() => nav(p.id)}
+            >
               <span className="sb-btn-icon">{p.icon}</span>
               <span className="sb-btn-label">{p.label}</span>
               {page === p.id && <span className="sb-dot"/>}
@@ -55,9 +60,10 @@ export default function App() {
           ))}
 
           <div className="sb-label" style={{ marginTop:14 }}>Informasi</div>
-          <div style={{ padding:'8px 10px', fontSize:11, color:'var(--text3)', lineHeight:1.6 }}>
-            Data diambil dari aplikasi pelaporan<br/>
-            <strong style={{ color:'var(--p3)' }}>MATA SE26</strong> — BPS Palas Utara
+          <div style={{ padding:'8px 10px', fontSize:11, color:'var(--text3)', lineHeight:1.7 }}>
+            Aplikasi pelaporan lapangan<br/>
+            <strong style={{ color:'var(--p3)' }}>Sensus Ekonomi 2026</strong><br/>
+            BPS Kab. Padang Lawas Utara
           </div>
         </nav>
 
@@ -77,7 +83,7 @@ export default function App() {
         {/* Mobile topbar */}
         <div className="mobile-topbar">
           <button className="hamburger" onClick={() => setMenuOpen(o => !o)}>☰</button>
-          <span className="mobile-brand">MATA SE26 Dashboard</span>
+          <span className="mobile-brand">MATA SE26</span>
           <ThemeToggle theme={theme} setTheme={setTheme} />
         </div>
 
@@ -104,6 +110,7 @@ export default function App() {
           {page === 'overview'    && <Overview    kecamatanList={kecList} />}
           {page === 'leaderboard' && <Leaderboard kecamatanList={kecList} />}
           {page === 'monitor'     && <Monitor     kecamatanList={kecList} />}
+          {page === 'input'       && <InputLaporan kecamatanList={kecList} />}
         </div>
       </div>
     </div>

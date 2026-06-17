@@ -47,14 +47,16 @@ function useCountUp(target, duration = 900, delay = 0, trigger = true) {
 
 // Podium card
 function PodiumCard({ person, rank, maxVal, delay }) {
-  const heights = [90, 120, 75]; // 2nd, 1st, 3rd
-  const colors  = ['#94a3b8','#f59e0b','#cd7f32'];
+  const heights  = [90, 120, 75];
+  const colors   = ['#94a3b8','#f59e0b','#cd7f32'];
   const gradients = [
     'linear-gradient(135deg,rgba(148,163,184,0.18),rgba(100,116,139,0.08))',
     'linear-gradient(135deg,rgba(245,158,11,0.22),rgba(251,191,36,0.08))',
     'linear-gradient(135deg,rgba(205,127,50,0.18),rgba(180,100,30,0.08))',
   ];
   const borders = ['rgba(148,163,184,0.3)','rgba(245,158,11,0.4)','rgba(205,127,50,0.3)'];
+
+  // Backend: total_terdata = total_keluarga + total_usaha + total_bku
   const countedVal = useCountUp(person?.total_terdata, 1000, delay);
 
   if (!person) return <div/>;
@@ -72,7 +74,6 @@ function PodiumCard({ person, rank, maxVal, delay }) {
       gap: 6,
       position: 'relative',
     }}>
-      {/* Podium height indicator strip */}
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
         height: heights[rank],
@@ -89,7 +90,6 @@ function PodiumCard({ person, rank, maxVal, delay }) {
         {countedVal.toLocaleString('id-ID')}
       </div>
       <div style={{ fontSize: 10, color: 'var(--text3)' }}>unit terdata</div>
-      {/* Mini progress bar vs #1 */}
       <div className="pw" style={{ width: '80%', height: 4, marginTop: 4 }}>
         <div className="pf" style={{
           height: '100%',
@@ -97,6 +97,11 @@ function PodiumCard({ person, rank, maxVal, delay }) {
           background: `linear-gradient(90deg,${colors[rank]},${colors[rank]}88)`,
           transition: 'width 1s ease',
         }}/>
+      </div>
+      {/* Mini detail breakdown */}
+      <div style={{ fontSize: 10, color: 'var(--text3)', display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <span>🏢 {(person.total_usaha||0).toLocaleString('id-ID')}</span>
+        <span>🏠 {(person.total_keluarga||0).toLocaleString('id-ID')}</span>
       </div>
       <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>📅 {person.hari_lapor}x lapor</div>
     </div>
@@ -121,32 +126,36 @@ export default function Leaderboard({ kecamatanList }) {
   }, [dari, sampai, kec]);
 
   const fmt = n => (n || 0).toLocaleString('id-ID');
+  // Backend leaderboard: total_terdata = total_keluarga + total_usaha + total_bku
   const maxVal = data[0]?.total_terdata || 1;
 
-  // Chart top 10
+  // Chart top 10 — backend field: total_usaha, total_keluarga, total_bku
   const chartData = data.slice(0, 10).map((d, i) => ({
     name: d._id.split(' ')[0],
-    usaha: d.total_usaha,
-    keluarga: d.total_keluarga,
-    total: d.total_terdata,
+    usaha:    d.total_usaha    || 0,
+    keluarga: d.total_keluarga || 0,
+    bku:      d.total_bku      || 0,
+    total:    d.total_terdata  || 0,
     fill: COLORS[i] || '#6366f1',
   }));
 
-  // Radar top 5 — normalized
+  // Radar top 5 — normalized %
   const radarData = data.slice(0, 5).map(d => ({
-    name: d._id.split(' ')[0],
-    Usaha:    Math.round((d.total_usaha    / maxVal) * 100),
-    Keluarga: Math.round((d.total_keluarga / maxVal) * 100),
-    Bangunan: Math.round((d.total_bangunan / maxVal) * 100),
-    Hari:     Math.round((d.hari_lapor     / (data[0]?.hari_lapor || 1)) * 100),
+    name:     d._id.split(' ')[0],
+    Usaha:    Math.round(((d.total_usaha    || 0) / maxVal) * 100),
+    Keluarga: Math.round(((d.total_keluarga || 0) / maxVal) * 100),
+    BKU:      Math.round(((d.total_bku      || 0) / maxVal) * 100),
+    Hari:     Math.round(((d.hari_lapor     || 0) / (data[0]?.hari_lapor || 1)) * 100),
   }));
 
   return (
     <div>
       <div className="controls">
-        <input type="date" className="ctrl-date" value={dari}   onChange={e => setDari(e.target.value)}   max={dayjs().format('YYYY-MM-DD')} />
+        <input type="date" className="ctrl-date" value={dari}
+          onChange={e => setDari(e.target.value)} max={dayjs().format('YYYY-MM-DD')} />
         <span style={{ color:'var(--text3)', fontSize:12 }}>s/d</span>
-        <input type="date" className="ctrl-date" value={sampai} onChange={e => setSampai(e.target.value)} max={dayjs().format('YYYY-MM-DD')} />
+        <input type="date" className="ctrl-date" value={sampai}
+          onChange={e => setSampai(e.target.value)} max={dayjs().format('YYYY-MM-DD')} />
         <select className="ctrl-sel" value={kec} onChange={e => setKec(e.target.value)}>
           <option value="">— Semua Kecamatan —</option>
           {kecamatanList.map(k => <option key={k} value={k}>{k}</option>)}
@@ -165,7 +174,7 @@ export default function Leaderboard({ kecamatanList }) {
               <div className="card-head">
                 <div className="card-title-g">
                   <div className="c-icon ci-a">🏆</div>
-                  <div><div className="c-title">Top 3 Petugas Terbaik</div><div className="c-sub">Berdasarkan total unit terdata</div></div>
+                  <div><div className="c-title">Top 3 Petugas Terbaik</div><div className="c-sub">Berdasarkan total unit terdata (P1+P2+P3)</div></div>
                 </div>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1.2fr 1fr', gap:14, alignItems:'end' }}>
@@ -178,11 +187,10 @@ export default function Leaderboard({ kecamatanList }) {
 
           {/* Row: bar chart + radar chart */}
           <div className="g2 mb">
-            {/* Stacked bar top 10 */}
             {chartData.length > 0 && (
               <div className="card animate-fadein" style={{ animationDelay: '0.15s' }}>
                 <div className="card-head">
-                  <div className="card-title-g"><div className="c-icon ci-p">📊</div><div><div className="c-title">Perbandingan Top 10 PCL</div><div className="c-sub">Usaha vs Keluarga</div></div></div>
+                  <div className="card-title-g"><div className="c-icon ci-p">📊</div><div><div className="c-title">Perbandingan Top 10 PCL</div><div className="c-sub">P1 Keluarga + P2 Usaha + P3 BKU</div></div></div>
                 </div>
                 <ResponsiveContainer width="100%" height={230}>
                   <BarChart data={chartData} margin={{ top:4, right:8, left:0, bottom:44 }}>
@@ -191,14 +199,14 @@ export default function Leaderboard({ kecamatanList }) {
                     <YAxis tick={{ fontSize:10, fill:'var(--text3)' }} />
                     <Tooltip content={<CustomTooltip/>} />
                     <Legend wrapperStyle={{ fontSize:11 }}/>
-                    <Bar dataKey="usaha"    name="Usaha"    fill="#6366f1" radius={[0,0,0,0]} stackId="a" animationDuration={1000}/>
-                    <Bar dataKey="keluarga" name="Keluarga" fill="#10b981" radius={[3,3,0,0]} stackId="a" animationDuration={1200}/>
+                    <Bar dataKey="usaha"    name="P2 Usaha"    fill="#6366f1" stackId="a" animationDuration={1000}/>
+                    <Bar dataKey="keluarga" name="P1 Keluarga" fill="#10b981" stackId="a" animationDuration={1200}/>
+                    <Bar dataKey="bku"      name="P3 BKU"      fill="#f59e0b" radius={[3,3,0,0]} stackId="a" animationDuration={1400}/>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
 
-            {/* Radar chart top 5 */}
             {radarData.length >= 3 && (
               <div className="card animate-fadein" style={{ animationDelay: '0.25s' }}>
                 <div className="card-head">
@@ -206,10 +214,10 @@ export default function Leaderboard({ kecamatanList }) {
                 </div>
                 <ResponsiveContainer width="100%" height={230}>
                   <RadarChart data={[
-                    { subject: 'Usaha',    ...Object.fromEntries(radarData.map(d => [d.name, d.Usaha])) },
-                    { subject: 'Keluarga', ...Object.fromEntries(radarData.map(d => [d.name, d.Keluarga])) },
-                    { subject: 'Bangunan', ...Object.fromEntries(radarData.map(d => [d.name, d.Bangunan])) },
-                    { subject: 'Keaktifan',...Object.fromEntries(radarData.map(d => [d.name, d.Hari])) },
+                    { subject: 'Usaha (P2)',    ...Object.fromEntries(radarData.map(d => [d.name, d.Usaha])) },
+                    { subject: 'Keluarga (P1)', ...Object.fromEntries(radarData.map(d => [d.name, d.Keluarga])) },
+                    { subject: 'BKU (P3)',      ...Object.fromEntries(radarData.map(d => [d.name, d.BKU])) },
+                    { subject: 'Keaktifan',     ...Object.fromEntries(radarData.map(d => [d.name, d.Hari])) },
                   ]}>
                     <PolarGrid stroke="var(--border)"/>
                     <PolarAngleAxis dataKey="subject" tick={{ fontSize:11, fill:'var(--text3)' }}/>
@@ -232,7 +240,7 @@ export default function Leaderboard({ kecamatanList }) {
             <div className="card-head">
               <div className="card-title-g">
                 <div className="c-icon ci-b">🏅</div>
-                <div><div className="c-title">Progress PCL vs Peringkat 1</div><div className="c-sub">Persentase capaian relatif</div></div>
+                <div><div className="c-title">Progress PCL vs Peringkat 1</div><div className="c-sub">Persentase capaian relatif total unit terdata</div></div>
               </div>
             </div>
             <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
@@ -265,13 +273,28 @@ export default function Leaderboard({ kecamatanList }) {
           {/* Full ranking table */}
           <div className="card animate-fadein" style={{ animationDelay: '0.4s' }}>
             <div className="card-head">
-              <div className="card-title-g"><div className="c-icon ci-g">📋</div><div><div className="c-title">Ranking Lengkap</div><div className="c-sub">{data.length} PCL aktif</div></div></div>
+              <div className="card-title-g">
+                <div className="c-icon ci-g">📋</div>
+                <div><div className="c-title">Ranking Lengkap</div><div className="c-sub">{data.length} PCL aktif</div></div>
+              </div>
               <span className="badge bp">{data.length} PCL</span>
             </div>
             <div className="tw">
               <table className="tbl">
                 <thead>
-                  <tr><th>#</th><th>PCL</th><th>Kecamatan</th><th>PML</th><th>Usaha</th><th>Keluarga</th><th>Bangunan</th><th>Total</th><th>Hari</th></tr>
+                  <tr>
+                    <th>#</th>
+                    <th>PCL</th>
+                    <th>Kecamatan</th>
+                    <th>PML</th>
+                    <th>P2 Usaha</th>
+                    <th>P1 Keluarga</th>
+                    <th>P3 BKU</th>
+                    <th>Bangunan</th>
+                    <th>Belum</th>
+                    <th>Total</th>
+                    <th>Hari</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {data.map((r, i) => (
@@ -282,7 +305,14 @@ export default function Leaderboard({ kecamatanList }) {
                       <td style={{ color:'var(--text3)', fontSize:11 }}>{r.pengawas}</td>
                       <td>{fmt(r.total_usaha)}</td>
                       <td>{fmt(r.total_keluarga)}</td>
+                      <td>{fmt(r.total_bku)}</td>
                       <td>{fmt(r.total_bangunan)}</td>
+                      <td>
+                        {r.total_belum > 0
+                          ? <span className="badge br">{fmt(r.total_belum)}</span>
+                          : <span style={{ color:'var(--text3)' }}>—</span>
+                        }
+                      </td>
                       <td><strong style={{ color:'var(--p3)' }}>{fmt(r.total_terdata)}</strong></td>
                       <td><span className="badge bp">{r.hari_lapor}x</span></td>
                     </tr>

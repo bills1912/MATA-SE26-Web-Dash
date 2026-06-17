@@ -96,12 +96,15 @@ export default function Overview({ kecamatanList }) {
       ]);
       setSummary(s.data);
       setRekapDesa(r.data);
+      // Backend trend: _id = tanggal, total_keluarga_submit, total_usaha_submit, total_bku_submit
       setTrend(t.data.map(d => ({
         tgl: d._id.slice(5),
-        usaha: d.total_usaha,
-        keluarga: d.total_keluarga,
-        total: d.total_usaha + d.total_keluarga,
-        laporan: d.jumlah_laporan,
+        usaha:    d.total_usaha_submit    || 0,
+        keluarga: d.total_keluarga_submit || 0,
+        bku:      d.total_bku_submit      || 0,
+        belum:    d.total_belum_submit    || 0,
+        total:    (d.total_usaha_submit || 0) + (d.total_keluarga_submit || 0),
+        laporan:  d.jumlah_laporan        || 0,
       })));
     } catch {}
     setLoading(false); setRefreshing(false);
@@ -109,26 +112,26 @@ export default function Overview({ kecamatanList }) {
 
   useEffect(() => { load(); }, [tanggal, kecamatan]);
 
-  const fmt = n => (n || 0).toLocaleString('id-ID');
-
-  // Pie data per kecamatan
+  // Pie data per kecamatan — gunakan total_usaha_submit + total_keluarga_submit dari rekap
   const pieData = Object.entries(
     rekapDesa.reduce((acc, r) => {
       const k = r._id.kecamatan;
       if (!acc[k]) acc[k] = 0;
-      acc[k] += r.total_usaha + r.total_keluarga_non_usaha;
+      // Backend rekap mengembalikan: total_usaha_submit, total_keluarga_submit
+      acc[k] += (r.total_usaha_submit || 0) + (r.total_keluarga_submit || 0);
       return acc;
     }, {})
   ).map(([name, value]) => ({ name, value })).sort((a,b) => b.value-a.value);
 
-  // Stacked bar per kecamatan from rekap
+  // Stacked bar per kecamatan
   const kecBarData = Object.entries(
     rekapDesa.reduce((acc, r) => {
       const k = r._id.kecamatan;
-      if (!acc[k]) acc[k] = { name: k.length > 14 ? k.slice(0,12)+'…' : k, usaha: 0, keluarga: 0, bangunan: 0 };
-      acc[k].usaha    += r.total_usaha    || 0;
-      acc[k].keluarga += r.total_keluarga_non_usaha || 0;
-      acc[k].bangunan += r.total_bangunan || 0;
+      if (!acc[k]) acc[k] = { name: k.length > 14 ? k.slice(0,12)+'…' : k, usaha: 0, keluarga: 0, bku: 0, bangunan: 0 };
+      acc[k].usaha    += r.total_usaha_submit    || 0;
+      acc[k].keluarga += r.total_keluarga_submit || 0;
+      acc[k].bku      += r.total_bku_submit      || 0;
+      acc[k].bangunan += r.total_bangunan        || 0;
       return acc;
     }, {})
   ).map(([, v]) => v).sort((a, b) => (b.usaha + b.keluarga) - (a.usaha + a.keluarga));
@@ -155,17 +158,50 @@ export default function Overview({ kecamatanList }) {
         <div className="loading"><div className="spinner"/><div className="loading-text">Memuat data...</div></div>
       ) : (
         <>
-          {/* Stat cards — animated on mount */}
+          {/* Stat cards */}
           <div ref={statsRef}>
+            {/* Row 1: 4 kolom utama */}
             <div className="g4 mb">
-              <StatCard icon="📋" label="Laporan Masuk"   value={summary?.jumlah_laporan}          className="sc-p" delay={0}   inView={statsInView}/>
-              <StatCard icon="🏢" label="Total Usaha"     value={summary?.total_usaha}              className="sc-g" delay={80}  inView={statsInView}/>
-              <StatCard icon="🏠" label="Kel. Non-Usaha"  value={summary?.total_keluarga_non_usaha} className="sc-a" delay={160} inView={statsInView}/>
-              <StatCard icon="🏗️" label="Total Bangunan"  value={summary?.total_bangunan}           className="sc-b" delay={240} inView={statsInView}/>
+              <StatCard
+                icon="📋" label="Laporan Masuk"
+                value={summary?.jumlah_laporan}
+                className="sc-p" delay={0} inView={statsInView}
+              />
+              <StatCard
+                icon="🏢" label="Usaha Submit (P2)"
+                value={summary?.total_usaha_submit}
+                className="sc-g" delay={80} inView={statsInView}
+              />
+              <StatCard
+                icon="🏠" label="Keluarga Submit (P1)"
+                value={summary?.total_keluarga_submit}
+                className="sc-a" delay={160} inView={statsInView}
+              />
+              <StatCard
+                icon="📒" label="BKU Submit (P3)"
+                value={summary?.total_bku_submit}
+                className="sc-b" delay={240} inView={statsInView}
+              />
             </div>
-            <div className="g4 mb" style={{ gridTemplateColumns:'1fr 1fr' }}>
-              <StatCard icon="⬜" label="Bangunan Kosong" value={summary?.total_bangunan_kosong}    className="sc-r" delay={320} inView={statsInView}/>
-              <div className="stat-card sc-p animate-fadein" style={{ animationDelay: '400ms', background:'linear-gradient(135deg,rgba(99,102,241,0.18),rgba(139,92,246,0.08))' }}>
+
+            {/* Row 2: Bangunan + Belum + Kosong + PCL */}
+            <div className="g4 mb">
+              <StatCard
+                icon="🏗️" label="Total Bangunan"
+                value={summary?.total_bangunan}
+                className="sc-p" delay={320} inView={statsInView}
+              />
+              <StatCard
+                icon="⬜" label="Bangunan Kosong (P4)"
+                value={summary?.total_bangunan_kosong}
+                className="sc-r" delay={400} inView={statsInView}
+              />
+              <StatCard
+                icon="⏳" label="Belum Submit (P6)"
+                value={summary?.total_belum_submit}
+                className="sc-a" delay={480} inView={statsInView}
+              />
+              <div className="stat-card sc-g animate-fadein" style={{ animationDelay: '560ms' }}>
                 <div className="s-icon">👥</div>
                 <div className="s-val">{(summary?.jumlah_pcl||[]).length}</div>
                 <div className="s-label">PCL Aktif Melapor</div>
@@ -181,7 +217,7 @@ export default function Overview({ kecamatanList }) {
                   <div className="c-icon ci-p">📈</div>
                   <div>
                     <div className="c-title">Trend Pendataan Harian</div>
-                    <div className="c-sub">14 hari terakhir — usaha & keluarga terdata</div>
+                    <div className="c-sub">14 hari terakhir — usaha (P2) & keluarga (P1) submit</div>
                   </div>
                 </div>
               </div>
@@ -196,14 +232,19 @@ export default function Overview({ kecamatanList }) {
                       <stop offset="5%"  stopColor="#10b981" stopOpacity={0.35}/>
                       <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                     </linearGradient>
+                    <linearGradient id="gBku" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="#f59e0b" stopOpacity={0.25}/>
+                      <stop offset="95%" stopColor="#f59e0b" stopOpacity={0}/>
+                    </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid,rgba(255,255,255,0.06))" />
                   <XAxis dataKey="tgl" tick={{ fontSize:11, fill:'var(--text3)' }} />
                   <YAxis tick={{ fontSize:11, fill:'var(--text3)' }} />
                   <Tooltip content={<CustomTooltip/>} />
                   <Legend wrapperStyle={{ fontSize:12 }} />
-                  <Area type="monotone" dataKey="usaha"    name="Usaha"    stroke="#6366f1" fill="url(#gUsaha)" strokeWidth={2.5} animationDuration={1200}/>
-                  <Area type="monotone" dataKey="keluarga" name="Keluarga" stroke="#10b981" fill="url(#gKel)"   strokeWidth={2.5} animationDuration={1400}/>
+                  <Area type="monotone" dataKey="usaha"    name="Usaha (P2)"    stroke="#6366f1" fill="url(#gUsaha)" strokeWidth={2.5} animationDuration={1200}/>
+                  <Area type="monotone" dataKey="keluarga" name="Keluarga (P1)" stroke="#10b981" fill="url(#gKel)"   strokeWidth={2.5} animationDuration={1400}/>
+                  <Area type="monotone" dataKey="bku"      name="BKU (P3)"      stroke="#f59e0b" fill="url(#gBku)"   strokeWidth={2}   animationDuration={1600}/>
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -216,7 +257,7 @@ export default function Overview({ kecamatanList }) {
                 <div className="card-head">
                   <div className="card-title-g">
                     <div className="c-icon ci-a">📊</div>
-                    <div><div className="c-title">Laporan Masuk / Hari</div><div className="c-sub">Jumlah SLS melapor</div></div>
+                    <div><div className="c-title">Laporan Masuk / Hari</div><div className="c-sub">Jumlah SLS melapor per hari</div></div>
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height={200}>
@@ -236,7 +277,7 @@ export default function Overview({ kecamatanList }) {
                 <div className="card-head">
                   <div className="card-title-g">
                     <div className="c-icon ci-g">🥧</div>
-                    <div><div className="c-title">Distribusi per Kecamatan</div><div className="c-sub">Proporsi unit terdata</div></div>
+                    <div><div className="c-title">Distribusi per Kecamatan</div><div className="c-sub">Proporsi unit terdata (usaha + keluarga)</div></div>
                   </div>
                 </div>
                 <ResponsiveContainer width="100%" height={200}>
@@ -253,7 +294,7 @@ export default function Overview({ kecamatanList }) {
             )}
           </div>
 
-          {/* NEW: Stacked bar per kecamatan (usaha + keluarga) */}
+          {/* Stacked bar per kecamatan */}
           {kecBarData.length > 0 && (
             <div className="card mb animate-fadein" style={{ animationDelay: '0.35s' }}>
               <div className="card-head">
@@ -261,7 +302,7 @@ export default function Overview({ kecamatanList }) {
                   <div className="c-icon ci-b">🏛️</div>
                   <div>
                     <div className="c-title">Rekap Unit per Kecamatan</div>
-                    <div className="c-sub">Usaha & keluarga non-usaha terdata</div>
+                    <div className="c-sub">P1 Keluarga + P2 Usaha + P3 BKU yang berhasil submit</div>
                   </div>
                 </div>
               </div>
@@ -272,22 +313,23 @@ export default function Overview({ kecamatanList }) {
                   <YAxis tick={{ fontSize:10, fill:'var(--text3)' }}/>
                   <Tooltip content={<CustomTooltip/>}/>
                   <Legend wrapperStyle={{ fontSize:11 }}/>
-                  <Bar dataKey="usaha"    name="Usaha"           fill="#6366f1" radius={[0,0,0,0]} stackId="a" animationDuration={1000}/>
-                  <Bar dataKey="keluarga" name="Kel. Non-Usaha"  fill="#10b981" radius={[3,3,0,0]} stackId="a" animationDuration={1200}/>
+                  <Bar dataKey="usaha"    name="Usaha (P2)"    fill="#6366f1" stackId="a" animationDuration={1000}/>
+                  <Bar dataKey="keluarga" name="Keluarga (P1)" fill="#10b981" stackId="a" animationDuration={1200}/>
+                  <Bar dataKey="bku"      name="BKU (P3)"      fill="#f59e0b" radius={[3,3,0,0]} stackId="a" animationDuration={1400}/>
                 </BarChart>
               </ResponsiveContainer>
             </div>
           )}
 
-          {/* NEW: Line chart total trend (usaha + keluarga gabungan) */}
+          {/* Line chart total trend */}
           {trend.length > 0 && (
             <div className="card mb animate-fadein" style={{ animationDelay: '0.4s' }}>
               <div className="card-head">
                 <div className="card-title-g">
                   <div className="c-icon ci-a">📉</div>
                   <div>
-                    <div className="c-title">Total Unit Terdata per Hari</div>
-                    <div className="c-sub">Gabungan usaha + keluarga (14 hari terakhir)</div>
+                    <div className="c-title">Total Unit Submit per Hari (P1+P2)</div>
+                    <div className="c-sub">Gabungan keluarga + usaha berhasil submit (14 hari)</div>
                   </div>
                 </div>
               </div>
@@ -303,8 +345,8 @@ export default function Overview({ kecamatanList }) {
                   <XAxis dataKey="tgl" tick={{ fontSize:10, fill:'var(--text3)' }}/>
                   <YAxis tick={{ fontSize:10, fill:'var(--text3)' }}/>
                   <Tooltip content={<CustomTooltip/>}/>
-                  <Area type="monotone" dataKey="total" name="Total Unit" stroke="#f59e0b" fill="url(#gTotal)" strokeWidth={0} animationDuration={1400}/>
-                  <Line type="monotone" dataKey="total" name="Total Unit" stroke="#f59e0b" strokeWidth={2.5} dot={{ r:3, fill:'#f59e0b' }} activeDot={{ r:5 }} animationDuration={1400}/>
+                  <Area type="monotone" dataKey="total" name="Total Submit" stroke="#f59e0b" fill="url(#gTotal)" strokeWidth={0} animationDuration={1400}/>
+                  <Line type="monotone" dataKey="total" name="Total Submit" stroke="#f59e0b" strokeWidth={2.5} dot={{ r:3, fill:'#f59e0b' }} activeDot={{ r:5 }} animationDuration={1400}/>
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -316,7 +358,10 @@ export default function Overview({ kecamatanList }) {
               <div className="card-head">
                 <div className="card-title-g">
                   <div className="c-icon ci-b">📍</div>
-                  <div><div className="c-title">Rekap per Desa</div><div className="c-sub">{rekapDesa.length} desa telah melapor</div></div>
+                  <div>
+                    <div className="c-title">Rekap per Desa</div>
+                    <div className="c-sub">{rekapDesa.length} desa telah melapor</div>
+                  </div>
                 </div>
                 <span className="badge bp">{rekapDesa.length} desa</span>
               </div>
@@ -324,8 +369,14 @@ export default function Overview({ kecamatanList }) {
                 <table className="tbl">
                   <thead>
                     <tr>
-                      <th>Kecamatan</th><th>Desa</th><th>SLS</th>
-                      <th>Usaha</th><th>Kel. Non-Usaha</th><th>Bangunan</th>
+                      <th>Kecamatan</th>
+                      <th>Desa</th>
+                      <th>SLS Lapor</th>
+                      <th>P1 Keluarga</th>
+                      <th>P2 Usaha</th>
+                      <th>P3 BKU</th>
+                      <th>Bangunan</th>
+                      <th>P6 Belum</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -334,9 +385,16 @@ export default function Overview({ kecamatanList }) {
                         <td className="bold">{r._id.kecamatan}</td>
                         <td>{r._id.desa}</td>
                         <td><span className="badge bp">{r.jumlah_laporan}</span></td>
-                        <td>{(r.total_usaha||0).toLocaleString('id-ID')}</td>
-                        <td>{(r.total_keluarga_non_usaha||0).toLocaleString('id-ID')}</td>
+                        <td>{(r.total_keluarga_submit||0).toLocaleString('id-ID')}</td>
+                        <td>{(r.total_usaha_submit||0).toLocaleString('id-ID')}</td>
+                        <td>{(r.total_bku_submit||0).toLocaleString('id-ID')}</td>
                         <td>{(r.total_bangunan||0).toLocaleString('id-ID')}</td>
+                        <td>
+                          {r.total_belum_submit > 0
+                            ? <span className="badge br">{r.total_belum_submit}</span>
+                            : <span style={{ color:'var(--text3)' }}>—</span>
+                          }
+                        </td>
                       </tr>
                     ))}
                   </tbody>
