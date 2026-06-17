@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   RadialBarChart, RadialBar, ResponsiveContainer,
   PieChart, Pie, Cell, Tooltip,
@@ -59,6 +59,290 @@ const CustomTooltip = ({ active, payload, label }) => {
   );
 };
 
+// ── Konstanta paginasi accordion ──
+const SLS_PER_PAGE = 10;
+
+// ── Komponen accordion expand: tabel SLS dengan search + paginasi ──
+function KecAccordionDetail({ sls, kecName }) {
+  const [query,    setQuery]    = useState('');
+  const [page,     setPage]     = useState(1);
+  const inputRef               = useRef(null);
+
+  // Reset saat data kecamatan berubah
+  useEffect(() => { setQuery(''); setPage(1); }, [kecName]);
+
+  // Filter berdasarkan query (cari di desa, SLS, pencacah, pengawas, idsubsls)
+  const filtered = query.trim()
+    ? sls.filter(s => {
+        const q = query.toLowerCase();
+        return (
+          (s.nmdesa    || '').toLowerCase().includes(q) ||
+          (s.nmsubsls  || '').toLowerCase().includes(q) ||
+          (s.pencacah  || '').toLowerCase().includes(q) ||
+          (s.pengawas  || '').toLowerCase().includes(q) ||
+          (s.idsubsls  || '').toLowerCase().includes(q)
+        );
+      })
+    : sls;
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / SLS_PER_PAGE));
+
+  // Kalau query berubah, kembali ke halaman 1
+  useEffect(() => { setPage(1); }, [query]);
+
+  // Pastikan page tidak melebihi totalPages
+  const safePage   = Math.min(page, totalPages);
+  const pageStart  = (safePage - 1) * SLS_PER_PAGE;
+  const pageRows   = filtered.slice(pageStart, pageStart + SLS_PER_PAGE);
+
+  const handleClearQuery = () => { setQuery(''); inputRef.current?.focus(); };
+
+  return (
+    <div style={{ borderTop: '1px solid var(--border)' }}>
+
+      {/* ── Search bar ── */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        padding: '10px 14px',
+        background: 'rgba(99,102,241,0.04)',
+        borderBottom: '1px solid var(--border)',
+      }}>
+        {/* ikon search */}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          style={{ flexShrink: 0 }}>
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Cari desa, SLS, PCL, PML..."
+          style={{
+            flex: 1,
+            border: 'none',
+            background: 'transparent',
+            outline: 'none',
+            fontSize: 13,
+            fontWeight: 500,
+            color: 'var(--text)',
+            fontFamily: 'inherit',
+          }}
+        />
+
+        {/* Info hasil filter */}
+        <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
+          {query.trim()
+            ? `${filtered.length} dari ${sls.length} hasil`
+            : `${sls.length} SLS`}
+        </span>
+
+        {/* Tombol hapus query */}
+        {query && (
+          <button
+            onClick={handleClearQuery}
+            style={{
+              width: 20, height: 20,
+              border: 'none',
+              background: 'var(--surface3)',
+              borderRadius: '50%',
+              color: 'var(--text3)',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, padding: 0,
+              transition: 'all 0.15s',
+            }}
+            title="Hapus pencarian"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* ── Tabel hasil ── */}
+      {pageRows.length === 0 ? (
+        <div style={{
+          padding: '28px 16px',
+          textAlign: 'center',
+          fontSize: 13,
+          color: 'var(--text3)',
+        }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>🔍</div>
+          Tidak ada SLS yang cocok dengan "<strong>{query}</strong>"
+        </div>
+      ) : (
+        <table className="tbl" style={{ minWidth: 'unset' }}>
+          <thead>
+            <tr>
+              <th style={{ width: 36 }}>#</th>
+              <th>Desa</th>
+              <th>SLS</th>
+              <th>PCL</th>
+              <th>PML</th>
+              <th>ID Subsls</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pageRows.map((s, i) => (
+              <tr key={s.idsubsls} style={{ animation: `fadeInUp 0.25s ease ${i * 30}ms both` }}>
+                <td style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
+                  {pageStart + i + 1}
+                </td>
+                <td className="bold">{s.nmdesa}</td>
+                <td>{s.nmsubsls}</td>
+                <td>👤 {s.pencacah}</td>
+                <td style={{ color: 'var(--text3)', fontSize: 11 }}>👁️ {s.pengawas}</td>
+                <td style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--p3)' }}>{s.idsubsls}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {/* ── Paginasi ── */}
+      {totalPages > 1 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 14px',
+          borderTop: '1px solid var(--border)',
+          background: 'rgba(99,102,241,0.03)',
+          gap: 8,
+          flexWrap: 'wrap',
+        }}>
+          {/* Info halaman */}
+          <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
+            Halaman{' '}
+            <strong style={{ color: 'var(--text2)' }}>{safePage}</strong>
+            {' '}dari{' '}
+            <strong style={{ color: 'var(--text2)' }}>{totalPages}</strong>
+            {' · '}
+            baris{' '}
+            <strong style={{ color: 'var(--text2)' }}>
+              {pageStart + 1}–{Math.min(pageStart + SLS_PER_PAGE, filtered.length)}
+            </strong>
+          </span>
+
+          {/* Tombol navigasi */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            {/* First */}
+            <PagBtn
+              disabled={safePage === 1}
+              onClick={() => setPage(1)}
+              title="Halaman pertama"
+            >«</PagBtn>
+
+            {/* Prev */}
+            <PagBtn
+              disabled={safePage === 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              title="Sebelumnya"
+            >‹</PagBtn>
+
+            {/* Nomor halaman — tampilkan max 5 di tengah */}
+            {buildPageNumbers(safePage, totalPages).map((pg, idx) =>
+              pg === '…' ? (
+                <span key={`ellipsis-${idx}`} style={{
+                  width: 28, textAlign: 'center',
+                  fontSize: 12, color: 'var(--text3)',
+                }}>…</span>
+              ) : (
+                <PagBtn
+                  key={pg}
+                  active={pg === safePage}
+                  onClick={() => setPage(pg)}
+                >{pg}</PagBtn>
+              )
+            )}
+
+            {/* Next */}
+            <PagBtn
+              disabled={safePage === totalPages}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              title="Berikutnya"
+            >›</PagBtn>
+
+            {/* Last */}
+            <PagBtn
+              disabled={safePage === totalPages}
+              onClick={() => setPage(totalPages)}
+              title="Halaman terakhir"
+            >»</PagBtn>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Helper: bangun array nomor halaman dengan ellipsis
+function buildPageNumbers(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = [];
+  // Selalu tampilkan halaman pertama
+  pages.push(1);
+  if (current > 3) pages.push('…');
+  // Halaman di sekitar current
+  const start = Math.max(2, current - 1);
+  const end   = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (current < total - 2) pages.push('…');
+  // Selalu tampilkan halaman terakhir
+  pages.push(total);
+  return pages;
+}
+
+// Tombol paginasi kecil
+function PagBtn({ children, onClick, disabled, active, title }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      style={{
+        minWidth: 28, height: 28,
+        borderRadius: 6,
+        border: active
+          ? '1px solid rgba(99,102,241,0.55)'
+          : '1px solid var(--border)',
+        background: active
+          ? 'rgba(99,102,241,0.18)'
+          : disabled
+            ? 'transparent'
+            : 'var(--surface)',
+        color: active
+          ? '#a5b4fc'
+          : disabled
+            ? 'var(--text3)'
+            : 'var(--text2)',
+        fontWeight: active ? 800 : 500,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        fontFamily: 'inherit',
+        fontSize: 12,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '0 5px',
+        opacity: disabled ? 0.35 : 1,
+        transition: 'all 0.13s',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Komponen utama Monitor
+// ─────────────────────────────────────────────────────────────────────────────
 export default function Monitor({ kecamatanList }) {
   const [tanggal, setTanggal] = useState(dayjs().format('YYYY-MM-DD'));
   const [kec, setKec] = useState('');
@@ -78,7 +362,11 @@ export default function Monitor({ kecamatanList }) {
       .finally(() => setLoading(false));
   }, [tanggal, kec]);
 
+  // Reset expanded saat data berubah
+  useEffect(() => { setExpanded({}); }, [tanggal, kec]);
+
   const toggle = (k) => setExpanded(e => ({ ...e, [k]: !e[k] }));
+
   const pct = data ? parseFloat(data.pct_selesai) : 0;
   const color = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#f43f5e';
 
@@ -105,7 +393,7 @@ export default function Monitor({ kecamatanList }) {
 
   const countedSudah = useCountUp(data?.sudah_lapor || 0, 1200, 300);
   const countedBelum = useCountUp(data?.belum_lapor || 0, 1200, 500);
-  const countedTotal = useCountUp(data?.total_sls || 0, 1200, 100);
+  const countedTotal = useCountUp(data?.total_sls   || 0, 1200, 100);
 
   return (
     <div>
@@ -127,7 +415,7 @@ export default function Monitor({ kecamatanList }) {
         <div className="empty"><div className="empty-icon">📡</div><div className="empty-title">Data tidak tersedia</div></div>
       ) : (
         <>
-          {/* Row 1: Radial + Donut + Bar kecamatan */}
+          {/* ── Row 1: Radial + Donut + Bar kecamatan ── */}
           <div className="g3 mb" style={{ alignItems: 'start' }}>
 
             {/* Radial gauge */}
@@ -135,7 +423,10 @@ export default function Monitor({ kecamatanList }) {
               <div className="card-head">
                 <div className="card-title-g">
                   <div className="c-icon ci-g">📡</div>
-                  <div><div className="c-title">Cakupan Pelaporan</div><div className="c-sub">{formatTanggal(tanggal)}</div></div>
+                  <div>
+                    <div className="c-title">Cakupan Pelaporan</div>
+                    <div className="c-sub">{formatTanggal(tanggal)}</div>
+                  </div>
                 </div>
               </div>
               <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
@@ -171,7 +462,10 @@ export default function Monitor({ kecamatanList }) {
               <div className="card-head">
                 <div className="card-title-g">
                   <div className="c-icon ci-p">🥧</div>
-                  <div><div className="c-title">Proporsi Pelaporan</div><div className="c-sub">Sudah vs Belum lapor hari ini</div></div>
+                  <div>
+                    <div className="c-title">Proporsi Pelaporan</div>
+                    <div className="c-sub">Sudah vs Belum lapor hari ini</div>
+                  </div>
                 </div>
               </div>
               <ResponsiveContainer width="100%" height={200}>
@@ -206,7 +500,10 @@ export default function Monitor({ kecamatanList }) {
               <div className="card-head">
                 <div className="card-title-g">
                   <div className="c-icon ci-r">⏳</div>
-                  <div><div className="c-title">Belum Lapor / Kecamatan</div><div className="c-sub">Jumlah SLS tertunda hari ini</div></div>
+                  <div>
+                    <div className="c-title">Belum Lapor / Kecamatan</div>
+                    <div className="c-sub">Jumlah SLS tertunda hari ini</div>
+                  </div>
                 </div>
               </div>
               {kecBelumData.length > 0 ? (
@@ -230,7 +527,7 @@ export default function Monitor({ kecamatanList }) {
             </div>
           </div>
 
-          {/* Row 2: Progress bar per kecamatan */}
+          {/* ── Row 2: Progress bar per kecamatan ── */}
           {kecBelumData.length > 0 && (
             <div className="card mb animate-fadein" style={{ animationDelay: '0.3s' }} ref={barRef}>
               <div className="card-head">
@@ -266,7 +563,7 @@ export default function Monitor({ kecamatanList }) {
             </div>
           )}
 
-          {/* Row 3: Detail collapsible per kecamatan */}
+          {/* ── Row 3: Detail collapsible per kecamatan — dengan search + paginasi ── */}
           <div className="sh">
             <span className="sh-title">📍 Detail SLS Belum Lapor</span>
             <span className="badge br">{data.belum_lapor} SLS</span>
@@ -274,43 +571,70 @@ export default function Monitor({ kecamatanList }) {
 
           {Object.entries(data.by_kecamatan || {})
             .sort((a, b) => b[1].length - a[1].length)
-            .map(([k, sls], i) => (
-              <div key={k} className="card mb animate-fadein" style={{ padding: 0, overflow: 'hidden', animationDelay: `${i * 50}ms` }}>
-                <button
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '14px 16px', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', gap: 12 }}
-                  onClick={() => toggle(k)}
+            .map(([k, sls], i) => {
+              const isOpen = !!expanded[k];
+              return (
+                <div
+                  key={k}
+                  className="card mb animate-fadein"
+                  style={{ padding: 0, overflow: 'hidden', animationDelay: `${i * 50}ms` }}
                 >
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>📍 {k}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{sls.length} SLS belum melapor</div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    <span className="badge br">{sls.length}</span>
-                    <span style={{ color: 'var(--text3)', fontSize: 14 }}>{expanded[k] ? '▲' : '▼'}</span>
-                  </div>
-                </button>
-                {expanded[k] && (
-                  <div style={{ borderTop: '1px solid var(--border)' }}>
-                    <table className="tbl" style={{ minWidth: 'unset' }}>
-                      <thead>
-                        <tr><th>Desa</th><th>SLS</th><th>PCL</th><th>PML</th><th>ID Subsls</th></tr>
-                      </thead>
-                      <tbody>
-                        {sls.map(s => (
-                          <tr key={s.idsubsls}>
-                            <td className="bold">{s.nmdesa}</td>
-                            <td>{s.nmsubsls}</td>
-                            <td>👤 {s.pencacah}</td>
-                            <td style={{ color: 'var(--text3)', fontSize: 11 }}>👁️ {s.pengawas}</td>
-                            <td style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--p3)' }}>{s.idsubsls}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            ))}
+                  {/* ── Header accordion ── */}
+                  <button
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                      padding: '14px 16px',
+                      border: 'none',
+                      background: isOpen
+                        ? 'rgba(99,102,241,0.06)'
+                        : 'transparent',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      gap: 12,
+                      transition: 'background 0.2s',
+                    }}
+                    onClick={() => toggle(k)}
+                  >
+                    <div style={{ textAlign: 'left' }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <span>📍</span>
+                        <span>{k}</span>
+                        {isOpen && (
+                          <span style={{
+                            fontSize: 10, fontWeight: 700,
+                            background: 'rgba(99,102,241,0.12)',
+                            border: '1px solid rgba(99,102,241,0.25)',
+                            color: '#a5b4fc',
+                            borderRadius: 10, padding: '1px 7px',
+                          }}>expanded</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>
+                        {sls.length} SLS belum melapor
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      <span className="badge br">{sls.length}</span>
+                      <span style={{
+                        color: isOpen ? '#a5b4fc' : 'var(--text3)',
+                        fontSize: 13,
+                        transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s, color 0.2s',
+                        display: 'inline-block',
+                      }}>▼</span>
+                    </div>
+                  </button>
+
+                  {/* ── Konten expand: search + tabel + paginasi ── */}
+                  {isOpen && (
+                    <KecAccordionDetail sls={sls} kecName={k} />
+                  )}
+                </div>
+              );
+            })}
 
           {Object.keys(data.by_kecamatan || {}).length === 0 && (
             <div className="empty">
