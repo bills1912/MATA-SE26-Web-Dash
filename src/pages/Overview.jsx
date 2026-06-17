@@ -115,10 +115,21 @@ function BelumGauge({ pct, total }) {
   );
 }
 
-// ── Komponen panel detail petugas P6 per kecamatan ──────────────────────────
+// ── Komponen panel detail petugas P6 per kecamatan — dengan paginasi ──────────
+const P6_DETAIL_PER_PAGE = 5;
+
 function P6KecDetail({ kecamatan, data, color }) {
   const rows = data || [];
+  const [detailPage, setDetailPage] = useState(1);
+
+  // Reset ke halaman 1 kalau data berubah (kecamatan berganti)
+  useEffect(() => { setDetailPage(1); }, [kecamatan]);
+
   if (rows.length === 0) return null;
+
+  const totalDetailPages = Math.ceil(rows.length / P6_DETAIL_PER_PAGE);
+  const pageStart        = (detailPage - 1) * P6_DETAIL_PER_PAGE;
+  const pageRows         = rows.slice(pageStart, pageStart + P6_DETAIL_PER_PAGE);
 
   return (
     <div style={{
@@ -156,7 +167,7 @@ function P6KecDetail({ kecamatan, data, color }) {
         }}>{rows.length} entri</span>
       </div>
 
-      {/* Tabel petugas */}
+      {/* Tabel petugas — hanya pageRows */}
       <div style={{ overflowX: 'auto' }}>
         <table style={{
           width: '100%',
@@ -183,8 +194,8 @@ function P6KecDetail({ kecamatan, data, color }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} style={{
+            {pageRows.map((r, i) => (
+              <tr key={pageStart + i} style={{
                 borderBottom: `1px solid ${color}14`,
                 animation: `fadeInUp 0.3s ease ${i * 40}ms both`,
               }}>
@@ -236,6 +247,86 @@ function P6KecDetail({ kecamatan, data, color }) {
           </tbody>
         </table>
       </div>
+
+      {/* ── Paginasi detail petugas ── */}
+      {totalDetailPages > 1 && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 14px',
+          borderTop: `1px solid ${color}20`,
+          background: `${color}08`,
+          gap: 8,
+          flexWrap: 'wrap',
+        }}>
+          {/* Info */}
+          <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
+            Menampilkan{' '}
+            <strong style={{ color: 'var(--text2)' }}>{pageStart + 1}–{Math.min(pageStart + P6_DETAIL_PER_PAGE, rows.length)}</strong>
+            {' '}dari{' '}
+            <strong style={{ color: 'var(--text2)' }}>{rows.length}</strong> entri
+          </span>
+
+          {/* Tombol navigasi */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            {/* Prev */}
+            <button
+              disabled={detailPage === 1}
+              onClick={() => setDetailPage(p => p - 1)}
+              style={{
+                width: 28, height: 28, borderRadius: 6,
+                border: `1px solid ${color}30`,
+                background: detailPage === 1 ? 'transparent' : `${color}12`,
+                color: detailPage === 1 ? 'var(--text3)' : color,
+                cursor: detailPage === 1 ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                opacity: detailPage === 1 ? 0.35 : 1,
+                transition: 'all 0.15s',
+              }}
+            >‹</button>
+
+            {/* Nomor halaman */}
+            {Array.from({ length: totalDetailPages }, (_, i) => i + 1).map(pg => (
+              <button
+                key={pg}
+                onClick={() => setDetailPage(pg)}
+                style={{
+                  minWidth: 28, height: 28, borderRadius: 6,
+                  border: pg === detailPage
+                    ? `1px solid ${color}60`
+                    : `1px solid ${color}20`,
+                  background: pg === detailPage ? `${color}20` : 'transparent',
+                  color: pg === detailPage ? color : 'var(--text3)',
+                  fontWeight: pg === detailPage ? 800 : 500,
+                  cursor: 'pointer', fontFamily: 'inherit', fontSize: 11,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  padding: '0 5px',
+                  transition: 'all 0.15s',
+                }}
+              >{pg}</button>
+            ))}
+
+            {/* Next */}
+            <button
+              disabled={detailPage === totalDetailPages}
+              onClick={() => setDetailPage(p => p + 1)}
+              style={{
+                width: 28, height: 28, borderRadius: 6,
+                border: `1px solid ${color}30`,
+                background: detailPage === totalDetailPages ? 'transparent' : `${color}12`,
+                color: detailPage === totalDetailPages ? 'var(--text3)' : color,
+                cursor: detailPage === totalDetailPages ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                opacity: detailPage === totalDetailPages ? 0.35 : 1,
+                transition: 'all 0.15s',
+              }}
+            >›</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -739,7 +830,7 @@ export default function Overview({ kecamatanList }) {
                     {/* ── Daftar kecamatan halaman ini ── */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                       {pageSlice.map((d, idx) => {
-                        const globalIdx  = pageStart + idx;           // urutan asli (untuk nomor & warna)
+                        const globalIdx  = pageStart + idx;
                         const pct        = Math.round((d.belum / belumKecData[0].belum) * 100);
                         const barColor   = ROSE_COLORS[globalIdx % ROSE_COLORS.length];
                         const isExpanded = p6ExpandedKec[d.fullName];
@@ -800,7 +891,7 @@ export default function Overview({ kecamatanList }) {
                               }} />
                             </div>
 
-                            {/* Panel detail petugas (collapsible) */}
+                            {/* Panel detail petugas (collapsible) — DENGAN PAGINASI */}
                             {isExpanded && (
                               <P6KecDetail
                                 kecamatan={d.fullName}
@@ -813,7 +904,7 @@ export default function Overview({ kecamatanList }) {
                       })}
                     </div>
 
-                    {/* ── Kontrol paginasi ── */}
+                    {/* ── Kontrol paginasi kecamatan ── */}
                     {totalPages > 1 && (
                       <div style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -821,16 +912,13 @@ export default function Overview({ kecamatanList }) {
                         borderTop: '1px solid rgba(244,63,94,0.15)',
                         gap: 8, flexWrap: 'wrap',
                       }}>
-                        {/* Info halaman */}
                         <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
                           Halaman <strong style={{ color: 'var(--text2)' }}>{p6Page}</strong> dari <strong style={{ color: 'var(--text2)' }}>{totalPages}</strong>
                           &nbsp;·&nbsp;
                           {pageStart + 1}–{Math.min(pageStart + P6_PER_PAGE, belumKecData.length)} dari {belumKecData.length} kecamatan
                         </span>
 
-                        {/* Tombol navigasi */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          {/* Prev */}
                           <button
                             disabled={p6Page === 1}
                             onClick={() => { setP6Page(p => p - 1); setP6ExpandedKec({}); }}
@@ -846,7 +934,6 @@ export default function Overview({ kecamatanList }) {
                             }}
                           >‹</button>
 
-                          {/* Nomor halaman */}
                           {Array.from({ length: totalPages }, (_, i) => i + 1).map(pg => (
                             <button
                               key={pg}
@@ -869,7 +956,6 @@ export default function Overview({ kecamatanList }) {
                             >{pg}</button>
                           ))}
 
-                          {/* Next */}
                           <button
                             disabled={p6Page === totalPages}
                             onClick={() => { setP6Page(p => p + 1); setP6ExpandedKec({}); }}
