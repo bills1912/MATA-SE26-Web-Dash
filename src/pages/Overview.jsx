@@ -128,8 +128,8 @@ function P6KecDetail({ kecamatan, data, color }) {
   if (rows.length === 0) return null;
 
   const totalDetailPages = Math.ceil(rows.length / P6_DETAIL_PER_PAGE);
-  const pageStart        = (detailPage - 1) * P6_DETAIL_PER_PAGE;
-  const pageRows         = rows.slice(pageStart, pageStart + P6_DETAIL_PER_PAGE);
+  const pageStart = (detailPage - 1) * P6_DETAIL_PER_PAGE;
+  const pageRows = rows.slice(pageStart, pageStart + P6_DETAIL_PER_PAGE);
 
   return (
     <div style={{
@@ -337,7 +337,7 @@ function buildPageNums(current, total) {
   const pages = [1];
   if (current > 3) pages.push('…');
   const start = Math.max(2, current - 1);
-  const end   = Math.min(total - 1, current + 1);
+  const end = Math.min(total - 1, current + 1);
   for (let i = start; i <= end; i++) pages.push(i);
   if (current < total - 2) pages.push('…');
   pages.push(total);
@@ -394,11 +394,11 @@ export default function Overview({ kecamatanList }) {
 
   // Rekap per Desa — search, filter kecamatan, paginasi
   const REKAP_PER_PAGE = 10;
-  const [rekapQuery,    setRekapQuery]    = useState('');
+  const [rekapQuery, setRekapQuery] = useState('');
   const [rekapKecFilter, setRekapKecFilter] = useState('');
-  const [rekapSortCol,  setRekapSortCol]  = useState('kecamatan'); // kecamatan | desa | p1 | p2 | p3 | bangunan | belum | sls
-  const [rekapSortDir,  setRekapSortDir]  = useState('asc');
-  const [rekapPage,     setRekapPage]     = useState(1);
+  const [rekapSortCol, setRekapSortCol] = useState('kecamatan'); // kecamatan | desa | p1 | p2 | p3 | bangunan | belum | sls
+  const [rekapSortDir, setRekapSortDir] = useState('asc');
+  const [rekapPage, setRekapPage] = useState(1);
 
   const [statsRef, statsInView] = useInView(0.1);
   const [chartRef, chartInView] = useInView(0.1);
@@ -853,8 +853,8 @@ export default function Overview({ kecamatanList }) {
               {/* ── Progress bar per kecamatan + TOGGLE DETAIL PETUGAS ── */}
               {belumKecData.length > 0 && (() => {
                 const totalPages = Math.ceil(belumKecData.length / P6_PER_PAGE);
-                const pageStart  = (p6Page - 1) * P6_PER_PAGE;
-                const pageSlice  = belumKecData.slice(pageStart, pageStart + P6_PER_PAGE);
+                const pageStart = (p6Page - 1) * P6_PER_PAGE;
+                const pageSlice = belumKecData.slice(pageStart, pageStart + P6_PER_PAGE);
 
                 return (
                   <div className="card mb animate-fadein" style={{
@@ -884,9 +884,9 @@ export default function Overview({ kecamatanList }) {
                     {/* ── Daftar kecamatan halaman ini ── */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                       {pageSlice.map((d, idx) => {
-                        const globalIdx  = pageStart + idx;
-                        const pct        = Math.round((d.belum / belumKecData[0].belum) * 100);
-                        const barColor   = ROSE_COLORS[globalIdx % ROSE_COLORS.length];
+                        const globalIdx = pageStart + idx;
+                        const pct = Math.round((d.belum / belumKecData[0].belum) * 100);
+                        const barColor = ROSE_COLORS[globalIdx % ROSE_COLORS.length];
                         const isExpanded = p6ExpandedKec[d.fullName];
                         const detailRows = p6Detail[d.fullName] || [];
 
@@ -1140,22 +1140,22 @@ export default function Overview({ kecamatanList }) {
               const q = rekapQuery.toLowerCase();
               return (
                 (r._id?.kecamatan || '').toLowerCase().includes(q) ||
-                (r._id?.desa      || '').toLowerCase().includes(q)
+                (r._id?.desa || '').toLowerCase().includes(q)
               );
             });
 
             // ── Sort ──
             const sortVal = (r) => {
               switch (rekapSortCol) {
-                case 'desa':      return (r._id?.desa || '').toLowerCase();
+                case 'desa': return (r._id?.desa || '').toLowerCase();
                 case 'kecamatan': return (r._id?.kecamatan || '').toLowerCase();
-                case 'sls':       return r.jumlah_laporan || 0;
-                case 'p1':        return r.total_keluarga_submit || 0;
-                case 'p2':        return r.total_usaha_submit || 0;
-                case 'p3':        return r.total_bku_submit || 0;
-                case 'bangunan':  return r.total_bangunan || 0;
-                case 'belum':     return r.total_belum_submit || 0;
-                default:          return (r._id?.kecamatan || '').toLowerCase();
+                case 'sls': return r.jumlah_laporan || 0;
+                case 'p1': return r.total_keluarga_submit || 0;
+                case 'p2': return r.total_usaha_submit || 0;
+                case 'p3': return r.total_bku_submit || 0;
+                case 'bangunan': return r.total_bangunan || 0;
+                case 'belum': return r.total_belum_submit || 0;
+                default: return (r._id?.kecamatan || '').toLowerCase();
               }
             };
             const afterSort = [...afterFilter].sort((a, b) => {
@@ -1166,9 +1166,9 @@ export default function Overview({ kecamatanList }) {
 
             // ── Paginasi ──
             const totalRekapPages = Math.max(1, Math.ceil(afterSort.length / REKAP_PER_PAGE));
-            const safeRekapPage   = Math.min(rekapPage, totalRekapPages);
-            const rekapStart      = (safeRekapPage - 1) * REKAP_PER_PAGE;
-            const pageRows        = afterSort.slice(rekapStart, rekapStart + REKAP_PER_PAGE);
+            const safeRekapPage = Math.min(rekapPage, totalRekapPages);
+            const rekapStart = (safeRekapPage - 1) * REKAP_PER_PAGE;
+            const pageRows = afterSort.slice(rekapStart, rekapStart + REKAP_PER_PAGE);
 
             // Handler sort: toggle arah jika kolom sama, set asc jika beda
             const handleSort = (col) => {
@@ -1235,8 +1235,8 @@ export default function Overview({ kecamatanList }) {
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
                       stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                       style={{ flexShrink: 0 }}>
-                      <circle cx="11" cy="11" r="8"/>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                      <circle cx="11" cy="11" r="8" />
+                      <line x1="21" y1="21" x2="16.65" y2="16.65" />
                     </svg>
                     <input
                       type="text"
@@ -1262,7 +1262,7 @@ export default function Overview({ kecamatanList }) {
                       >
                         <svg width="9" height="9" viewBox="0 0 24 24" fill="none"
                           stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
                       </button>
                     )}
@@ -1270,15 +1270,15 @@ export default function Overview({ kecamatanList }) {
 
                   {/* Filter kecamatan dropdown */}
                   <div style={{ flex: '1 1 180px', minWidth: 160 }}>
-                    <select
-                      value={rekapKecFilter}
-                      onChange={e => { setRekapKecFilter(e.target.value); setRekapPage(1); }}
+                    <SearchSelect
                       className="ctrl-sel"
                       style={{ width: '100%', padding: '8px 28px 8px 10px', fontSize: 12, height: 36 }}
-                    >
-                      <option value="">— Semua Kecamatan —</option>
-                      {kecOptions.map(k => <option key={k} value={k}>{k}</option>)}
-                    </select>
+                      label="Kecamatan"
+                      placeholder="— Semua Kecamatan —"
+                      value={rekapKecFilter}
+                      onChange={e => { setRekapKecFilter(e.target.value); setRekapPage(1); }}
+                      options={Array.isArray(kecamatanList) ? kecamatanList : []}
+                    />
                   </div>
 
                   {/* Filter: hanya yang ada P6 */}
@@ -1326,7 +1326,7 @@ export default function Overview({ kecamatanList }) {
                     >
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                       </svg>
                       Reset
                     </button>
