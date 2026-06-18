@@ -1,0 +1,20 @@
+/* ================================================
+   REKAP TOOLBAR — Override SearchSelect tanpa label
+   Dipakai hanya di blok toolbar "Rekap per Desa"
+   ================================================ */
+
+/* Wrapper override: paksa ss-wrap mengikuti lebar parent */
+.rekap-kec-wrap {
+  min-width: 0 !important;    /* batalkan min-width default ss-wrap */
+}
+
+.rekap-kec-wrap .ss-wrap {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+/* Trigger mengikuti lebar penuh wrapper, batalkan min-width keras */
+.rekap-kec-wrap .ss-trigger {
+  min-width: 0 !important;
+  width: 100% !important;
+}

@@ -10,6 +10,7 @@ import DatePicker, { todayStr } from '../components/DatePicker';
 import SearchSelect from '../components/SearchSelect';
 import { RefreshButton, ExportButton } from '../components/ActionButtons';
 import '../components/custom-controls.css';
+import '../styles/rekap-toolbar.css';
 import { dashApi } from '../utils/api';
 
 dayjs.locale('id');
@@ -1234,22 +1235,25 @@ export default function Overview({ kecamatanList }) {
 
                 {/* ── Toolbar: search + filter kecamatan + checkbox ── */}
                 <div style={{
-                  display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center',
+                  display: 'flex', gap: 10, flexWrap: 'wrap',
+                  alignItems: 'center',   /* semua anak rata tengah vertikal */
                   marginBottom: 14,
-                  padding: '12px 14px',
+                  padding: '10px 14px',
                   background: 'var(--surface)',
                   borderRadius: 'var(--r-sm)',
                   border: '1px solid var(--border)',
                 }}>
-                  {/* Search box — tinggi 44px sama dengan SearchSelect trigger */}
+
+                  {/* ── Search box — flex:2 supaya lebih lebar dari select ── */}
                   <div style={{
                     display: 'flex', alignItems: 'center', gap: 8,
-                    flex: '1 1 200px', minWidth: 180,
+                    flex: '2 1 220px',      /* ambil 2× lebih lebar dari select */
+                    minWidth: 180,
+                    height: 44,
                     padding: '0 12px',
                     background: 'var(--surface2)',
                     border: '1.5px solid var(--border)',
                     borderRadius: 9,
-                    height: 44,           /* ✅ seragam dengan ss-trigger */
                     transition: 'border-color 0.2s, box-shadow 0.2s',
                   }}
                     onFocusCapture={e => {
@@ -1297,17 +1301,25 @@ export default function Overview({ kecamatanList }) {
                     )}
                   </div>
 
-                  {/* ✅ FIX: SearchSelect dengan onChange menerima string langsung */}
-                  <SearchSelect
-                    className="ss-kec"
-                    label="Kecamatan"
-                    placeholder="— Semua Kecamatan —"
-                    value={rekapKecFilter}
-                    onChange={(val) => { setRekapKecFilter(val); setRekapPage(1); }}
-                    options={Array.isArray(kecamatanList) ? kecamatanList : []}
-                  />
+                  {/* ── SearchSelect Kecamatan — flex:1, tanpa label agar tinggi sejajar ── */}
+                  {/* Bungkus div agar bisa atur flex tanpa konflik dengan ss-wrap */}
+                  <div style={{ flex: '1 1 180px', minWidth: 160 }} className="rekap-kec-wrap">
+                    <SearchSelect
+                      placeholder="— Semua Kecamatan —"
+                      value={rekapKecFilter}
+                      onChange={(val) => { setRekapKecFilter(val); setRekapPage(1); }}
+                      options={Array.isArray(kecamatanList) ? kecamatanList : []}
+                    />
+                  </div>
 
-                  {/* ✅ Custom Checkbox dengan animasi estetik */}
+                  {/* ── Divider tipis ── */}
+                  <div style={{
+                    width: 1, height: 28,
+                    background: 'var(--border2)',
+                    flexShrink: 0,
+                  }} />
+
+                  {/* ── Custom Checkbox ── */}
                   <CustomCheckbox
                     checked={sortByP6}
                     onChange={() => {
@@ -1320,7 +1332,7 @@ export default function Overview({ kecamatanList }) {
                     colorBorder="rgba(244,63,94,0.3)"
                   />
 
-                  {/* Reset filter */}
+                  {/* ── Reset filter ── */}
                   {hasActiveFilter && (
                     <button
                       onClick={() => {
@@ -1332,17 +1344,17 @@ export default function Overview({ kecamatanList }) {
                         setRekapPage(1);
                       }}
                       style={{
-                        padding: '0 14px', height: 44,    /* ✅ tinggi seragam */
-                        borderRadius: 9, fontSize: 12, fontWeight: 700,
+                        padding: '0 12px', height: 32,
+                        borderRadius: 8, fontSize: 11, fontWeight: 700,
                         background: 'rgba(244,63,94,0.08)', border: '1.5px solid rgba(244,63,94,0.25)',
                         color: '#fda4af', cursor: 'pointer', fontFamily: 'inherit',
-                        display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+                        display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
                         transition: 'all 0.15s',
                       }}
                       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(244,63,94,0.16)'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = 'rgba(244,63,94,0.08)'; }}
                     >
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                         <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
                       </svg>
