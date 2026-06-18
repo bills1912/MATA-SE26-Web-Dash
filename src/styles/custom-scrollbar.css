@@ -1,0 +1,317 @@
+/* ================================================================
+   MATA SE26 — Custom Scrollbar
+   Berlaku untuk: html body, .content, .sb-nav, .ss-options,
+   .tw (tabel), .tbl wrapper, accordion detail, semua overflow
+   Menyesuaikan dark / light theme via [data-theme]
+   ================================================================ */
+
+/* ── CSS Variables scrollbar ─────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --sb-track:        rgba(255, 255, 255, 0.04);
+  --sb-thumb:        rgba(99, 102, 241, 0.35);
+  --sb-thumb-hover:  rgba(99, 102, 241, 0.62);
+  --sb-thumb-active: rgba(99, 102, 241, 0.85);
+  --sb-corner:       transparent;
+
+  /* thin variant (pakai di dropdown, table overflow) */
+  --sb-thin-track:   rgba(255, 255, 255, 0.03);
+  --sb-thin-thumb:   rgba(99, 102, 241, 0.28);
+  --sb-thin-hover:   rgba(99, 102, 241, 0.55);
+}
+
+[data-theme="light"] {
+  --sb-track:        rgba(0, 0, 0, 0.04);
+  --sb-thumb:        rgba(99, 102, 241, 0.22);
+  --sb-thumb-hover:  rgba(99, 102, 241, 0.45);
+  --sb-thumb-active: rgba(99, 102, 241, 0.65);
+  --sb-corner:       transparent;
+
+  --sb-thin-track:   rgba(0, 0, 0, 0.04);
+  --sb-thin-thumb:   rgba(99, 102, 241, 0.18);
+  --sb-thin-hover:   rgba(99, 102, 241, 0.4);
+}
+
+/* ================================================================
+   1. GLOBAL — html & body (main page scroll)
+   ================================================================ */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thumb) var(--sb-track);
+}
+
+html::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+html::-webkit-scrollbar-track {
+  background: var(--sb-track);
+}
+html::-webkit-scrollbar-thumb {
+  background: var(--sb-thumb);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.25s ease;
+}
+html::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thumb-hover);
+  background-clip: padding-box;
+}
+html::-webkit-scrollbar-thumb:active {
+  background: var(--sb-thumb-active);
+  background-clip: padding-box;
+}
+html::-webkit-scrollbar-corner {
+  background: var(--sb-corner);
+}
+
+/* ================================================================
+   2. .content — area konten utama (kanan sidebar)
+   ================================================================ */
+.content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thumb) var(--sb-track);
+}
+
+.content::-webkit-scrollbar {
+  width: 7px;
+}
+.content::-webkit-scrollbar-track {
+  background: var(--sb-track);
+  border-radius: 0;
+}
+.content::-webkit-scrollbar-thumb {
+  background: var(--sb-thumb);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background 0.25s ease;
+}
+.content::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thumb-hover);
+  background-clip: padding-box;
+}
+.content::-webkit-scrollbar-thumb:active {
+  background: var(--sb-thumb-active);
+  background-clip: padding-box;
+}
+
+/* ================================================================
+   3. .sb-nav — sidebar navigation scroll
+   ================================================================ */
+.sb-nav {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thin-thumb) var(--sb-thin-track);
+}
+
+.sb-nav::-webkit-scrollbar {
+  width: 4px;
+}
+.sb-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sb-nav::-webkit-scrollbar-thumb {
+  background: var(--sb-thin-thumb);
+  border-radius: 99px;
+  transition: background 0.2s ease;
+}
+.sb-nav::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thin-hover);
+}
+
+/* ================================================================
+   4. .tw — table wrapper (overflow-x: auto)
+   ================================================================ */
+.tw {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thin-thumb) var(--sb-thin-track);
+}
+
+.tw::-webkit-scrollbar {
+  height: 5px;
+  width: 5px;
+}
+.tw::-webkit-scrollbar-track {
+  background: var(--sb-thin-track);
+  border-radius: 99px;
+}
+.tw::-webkit-scrollbar-thumb {
+  background: var(--sb-thin-thumb);
+  border-radius: 99px;
+  transition: background 0.2s ease;
+}
+.tw::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thin-hover);
+}
+.tw::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ================================================================
+   5. .ss-options — SearchSelect dropdown list
+   ================================================================ */
+.ss-options {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thin-thumb) transparent;
+}
+
+.ss-options::-webkit-scrollbar {
+  width: 4px;
+}
+.ss-options::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ss-options::-webkit-scrollbar-thumb {
+  background: var(--sb-thin-thumb);
+  border-radius: 99px;
+  transition: background 0.2s ease;
+}
+.ss-options::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thin-hover);
+}
+
+/* ================================================================
+   6. KecAccordionDetail — tabel SLS dalam accordion Monitor
+      (wrapper div yang mengandung overflow-x: auto)
+   ================================================================ */
+.kec-acc-detail-tw {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thin-thumb) var(--sb-thin-track);
+}
+
+.kec-acc-detail-tw::-webkit-scrollbar {
+  height: 4px;
+}
+.kec-acc-detail-tw::-webkit-scrollbar-track {
+  background: var(--sb-thin-track);
+  border-radius: 99px;
+}
+.kec-acc-detail-tw::-webkit-scrollbar-thumb {
+  background: var(--sb-thin-thumb);
+  border-radius: 99px;
+}
+.kec-acc-detail-tw::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thin-hover);
+}
+
+/* ================================================================
+   7. P6KecDetail — tabel detail petugas P6 per kecamatan
+   ================================================================ */
+.p6-detail-tw {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(244, 63, 94, 0.28) rgba(244, 63, 94, 0.06);
+}
+
+.p6-detail-tw::-webkit-scrollbar {
+  height: 4px;
+  width: 4px;
+}
+.p6-detail-tw::-webkit-scrollbar-track {
+  background: rgba(244, 63, 94, 0.06);
+  border-radius: 99px;
+}
+.p6-detail-tw::-webkit-scrollbar-thumb {
+  background: rgba(244, 63, 94, 0.28);
+  border-radius: 99px;
+}
+.p6-detail-tw::-webkit-scrollbar-thumb:hover {
+  background: rgba(244, 63, 94, 0.52);
+}
+
+/* ================================================================
+   8. Textarea — InputLaporan form
+   ================================================================ */
+textarea {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thin-thumb) transparent;
+}
+
+textarea::-webkit-scrollbar {
+  width: 4px;
+}
+textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+textarea::-webkit-scrollbar-thumb {
+  background: var(--sb-thin-thumb);
+  border-radius: 99px;
+}
+textarea::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thin-hover);
+}
+
+/* ================================================================
+   9. Rekap per Desa — overflow-x wrapper
+      (div style overflowX: auto pada tabel rekap di Overview)
+   ================================================================ */
+.card .tw,
+.card [style*="overflow-x: auto"],
+.card [style*="overflow-x:auto"] {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thin-thumb) var(--sb-thin-track);
+}
+
+.card .tw::-webkit-scrollbar,
+.card [style*="overflow-x: auto"]::-webkit-scrollbar,
+.card [style*="overflow-x:auto"]::-webkit-scrollbar {
+  height: 5px;
+}
+.card .tw::-webkit-scrollbar-track,
+.card [style*="overflow-x: auto"]::-webkit-scrollbar-track,
+.card [style*="overflow-x:auto"]::-webkit-scrollbar-track {
+  background: var(--sb-thin-track);
+  border-radius: 99px;
+}
+.card .tw::-webkit-scrollbar-thumb,
+.card [style*="overflow-x: auto"]::-webkit-scrollbar-thumb,
+.card [style*="overflow-x:auto"]::-webkit-scrollbar-thumb {
+  background: var(--sb-thin-thumb);
+  border-radius: 99px;
+}
+.card .tw::-webkit-scrollbar-thumb:hover,
+.card [style*="overflow-x: auto"]::-webkit-scrollbar-thumb:hover,
+.card [style*="overflow-x:auto"]::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thin-hover);
+}
+
+/* ================================================================
+   10. UNIVERSAL FALLBACK — semua overflow:auto/scroll yang belum
+       dicakup di atas (mis. portal dropdown, chart container)
+   ================================================================ */
+*:not(html):not(body):not(.content):not(.sb-nav):not(.tw):not(.ss-options) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sb-thin-thumb) transparent;
+}
+
+*:not(html):not(body):not(.content):not(.sb-nav):not(.tw):not(.ss-options)::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+*:not(html):not(body):not(.content):not(.sb-nav):not(.tw):not(.ss-options)::-webkit-scrollbar-track {
+  background: transparent;
+}
+*:not(html):not(body):not(.content):not(.sb-nav):not(.tw):not(.ss-options)::-webkit-scrollbar-thumb {
+  background: var(--sb-thin-thumb);
+  border-radius: 99px;
+  transition: background 0.2s ease;
+}
+*:not(html):not(body):not(.content):not(.sb-nav):not(.tw):not(.ss-options)::-webkit-scrollbar-thumb:hover {
+  background: var(--sb-thin-hover);
+}
+
+/* ================================================================
+   11. ANIMASI — smooth fade-in thumb saat area discroll
+   ================================================================ */
+@keyframes sb-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+html::-webkit-scrollbar-thumb,
+.content::-webkit-scrollbar-thumb,
+.sb-nav::-webkit-scrollbar-thumb,
+.tw::-webkit-scrollbar-thumb,
+.ss-options::-webkit-scrollbar-thumb {
+  animation: sb-fadein 0.3s ease;
+}
