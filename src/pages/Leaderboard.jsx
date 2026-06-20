@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -13,6 +13,11 @@ import { dashApi } from '../utils/api';
 
 const MEDAL = ['🥇', '🥈', '🥉'];
 const COLORS = ['#f59e0b', '#a3a3a3', '#cd7f32', '#6366f1', '#10b981', '#3b82f6', '#8b5cf6', '#f43f5e', '#06b6d4', '#ec4899'];
+
+/* ─────────────────────────────────────────────────────────────
+   Konstanta paginasi tabel ranking
+───────────────────────────────────────────────────────────── */
+const RANK_PER_PAGE = 10;
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
@@ -98,6 +103,176 @@ function PodiumCard({ person, rank, maxVal, delay }) {
   );
 }
 
+/* ─────────────────────────────────────────────────────────────
+   Helper: bangun array nomor halaman dengan ellipsis
+───────────────────────────────────────────────────────────── */
+function buildPageNumbers(current, total) {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = [1];
+  if (current > 3) pages.push('…');
+  const start = Math.max(2, current - 1);
+  const end   = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+  if (current < total - 2) pages.push('…');
+  pages.push(total);
+  return pages;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Tombol paginasi kecil — konsisten dengan Monitor.jsx
+───────────────────────────────────────────────────────────── */
+function PagBtn({ children, onClick, disabled, active, title }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      style={{
+        minWidth: 28, height: 28,
+        borderRadius: 6,
+        border: active
+          ? '1px solid rgba(99,102,241,0.55)'
+          : '1px solid var(--border)',
+        background: active
+          ? 'rgba(99,102,241,0.18)'
+          : disabled ? 'transparent' : 'var(--surface)',
+        color: active ? '#a5b4fc' : disabled ? 'var(--text3)' : 'var(--text2)',
+        fontWeight: active ? 800 : 500,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        fontFamily: 'inherit', fontSize: 12,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '0 5px',
+        opacity: disabled ? 0.35 : 1,
+        transition: 'all 0.13s',
+      }}
+    >{children}</button>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Search bar estetik — inline di card Ranking Lengkap
+───────────────────────────────────────────────────────────── */
+function RankSearchBar({ value, onChange, total, filtered }) {
+  const inputRef = useRef(null);
+  const hasValue = value.trim().length > 0;
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '9px 13px',
+        background: 'rgba(99,102,241,0.05)',
+        border: '1.5px solid var(--border)',
+        borderRadius: 10,
+        marginBottom: 14,
+        transition: 'border-color 0.2s, box-shadow 0.2s',
+        /* glow saat ada isi */
+        ...(hasValue
+          ? {
+              borderColor: 'rgba(99,102,241,0.45)',
+              boxShadow: '0 0 0 3px rgba(99,102,241,0.10)',
+            }
+          : {}),
+      }}
+      /* fokus via klik area */
+      onClick={() => inputRef.current?.focus()}
+    >
+      {/* ikon search — sedikit glow saat ada query */}
+      <svg
+        width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke={hasValue ? '#a78bfa' : 'var(--text3)'}
+        strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+        style={{ flexShrink: 0, transition: 'stroke 0.2s' }}
+      >
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+
+      {/* input */}
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder="Cari nama PCL, kecamatan, atau PML..."
+        style={{
+          flex: 1,
+          border: 'none',
+          background: 'transparent',
+          outline: 'none',
+          fontSize: 13,
+          fontWeight: 500,
+          color: 'var(--text)',
+          fontFamily: 'inherit',
+          caretColor: '#a78bfa',
+        }}
+      />
+
+      {/* badge hasil filter — muncul hanya saat ada query */}
+      {hasValue && (
+        <span
+          style={{
+            padding: '2px 9px',
+            borderRadius: 10,
+            background: filtered < total
+              ? 'rgba(99,102,241,0.15)'
+              : 'rgba(16,185,129,0.12)',
+            border: filtered < total
+              ? '1px solid rgba(99,102,241,0.3)'
+              : '1px solid rgba(16,185,129,0.28)',
+            color: filtered < total ? '#a78bfa' : '#6ee7b7',
+            fontSize: 11,
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            animation: 'fadeIn 0.18s ease',
+          }}
+        >
+          {filtered} / {total}
+        </span>
+      )}
+
+      {/* tombol clear */}
+      {hasValue && (
+        <button
+          onClick={e => { e.stopPropagation(); onChange(''); inputRef.current?.focus(); }}
+          title="Hapus pencarian"
+          style={{
+            width: 22, height: 22,
+            border: 'none',
+            background: 'var(--surface3)',
+            borderRadius: '50%',
+            color: 'var(--text3)',
+            cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0, padding: 0,
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(244,63,94,0.15)';
+            e.currentTarget.style.color = '#fda4af';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'var(--surface3)';
+            e.currentTarget.style.color = 'var(--text3)';
+          }}
+        >
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Komponen utama Leaderboard
+───────────────────────────────────────────────────────────── */
 export default function Leaderboard({ kecamatanList }) {
   const [dari, setDari] = useState(dayjs().format('YYYY-MM-DD'));
   const [sampai, setSampai] = useState(dayjs().format('YYYY-MM-DD'));
@@ -105,25 +280,56 @@ export default function Leaderboard({ kecamatanList }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  /* ── State search + paginasi ranking ── */
+  const [rankQuery, setRankQuery]   = useState('');
+  const [rankPage,  setRankPage]    = useState(1);
+
   useEffect(() => {
     setLoading(true);
     const p = { tanggal_dari: dari, tanggal_sampai: sampai };
     if (kec) p.kecamatan = kec;
     dashApi.getLeaderboard(p)
-      // ✅ FIX 1: guard Array.isArray — r.data bisa null/undefined/object dari API
       .then(r => setData(Array.isArray(r.data) ? r.data : []))
       .catch(() => setData([]))
       .finally(() => setLoading(false));
   }, [dari, sampai, kec]);
 
+  /* Reset paginasi & query saat filter berubah */
+  useEffect(() => {
+    setRankQuery('');
+    setRankPage(1);
+  }, [dari, sampai, kec]);
+
+  /* Reset ke halaman 1 saat query berubah */
+  useEffect(() => {
+    setRankPage(1);
+  }, [rankQuery]);
+
   const fmt = n => (n || 0).toLocaleString('id-ID');
 
-  // ✅ FIX 2: selalu pakai safeData untuk semua operasi array
   const safeData = Array.isArray(data) ? data : [];
-  const maxVal = safeData[0]?.total_terdata || 1;
-  const maxHari = safeData[0]?.hari_lapor || 1;
+  const maxVal   = safeData[0]?.total_terdata || 1;
+  const maxHari  = safeData[0]?.hari_lapor    || 1;
 
-  // Chart data top 10
+  /* ── Filter berdasarkan query ── */
+  const filteredData = rankQuery.trim()
+    ? safeData.filter(r => {
+        const q = rankQuery.toLowerCase();
+        return (
+          (r._id       || '').toLowerCase().includes(q) ||
+          (r.nmkec     || '').toLowerCase().includes(q) ||
+          (r.pengawas  || '').toLowerCase().includes(q)
+        );
+      })
+    : safeData;
+
+  /* ── Paginasi ── */
+  const totalRankPages = Math.max(1, Math.ceil(filteredData.length / RANK_PER_PAGE));
+  const safeRankPage   = Math.min(rankPage, totalRankPages);
+  const rankStart      = (safeRankPage - 1) * RANK_PER_PAGE;
+  const pageRows       = filteredData.slice(rankStart, rankStart + RANK_PER_PAGE);
+
+  /* ── Chart data top 10 ── */
   const chartData = safeData.slice(0, 10).map((d, i) => ({
     name: (d._id || '').split(' ')[0],
     usaha: d.total_usaha || 0,
@@ -133,15 +339,6 @@ export default function Leaderboard({ kecamatanList }) {
     fill: COLORS[i] || '#6366f1',
   }));
 
-  // ✅ FIX 3: format radarData yang BENAR untuk RadarChart
-  //
-  // LAMA (SALAH): radarData = data.slice(0,5).map(d => ({ name, Usaha, ... }))
-  //   lalu di JSX: RadarChart data={[ { subject:'Usaha', ...Object.fromEntries(radarData.map(...)) } ]}
-  //   → radarData.map() di dalam JSX prop crash jika radarData undefined → w.reduce error
-  //
-  // BARU (BENAR): radarData langsung dalam format Recharts:
-  //   setiap item = 1 baris (1 sumbu axis), dengan nilai per orang sebagai key
-  //   { subject: 'Usaha (P2)', 'Budi': 80, 'Ani': 60, ... }
   const top5 = safeData.slice(0, 5);
 
   const radarData = top5.length >= 3
@@ -234,16 +431,14 @@ export default function Leaderboard({ kecamatanList }) {
                     <YAxis tick={{ fontSize: 10, fill: 'var(--text3)' }} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ fontSize: 11 }} />
-                    <Bar dataKey="usaha" name="P2 Usaha" fill="#6366f1" stackId="a" animationDuration={1000} />
+                    <Bar dataKey="usaha"    name="P2 Usaha"    fill="#6366f1" stackId="a" animationDuration={1000} />
                     <Bar dataKey="keluarga" name="P1 Keluarga" fill="#10b981" stackId="a" animationDuration={1200} />
-                    <Bar dataKey="bku" name="P3 BKU" fill="#f59e0b" radius={[3, 3, 0, 0]} stackId="a" animationDuration={1400} />
+                    <Bar dataKey="bku"      name="P3 BKU"      fill="#f59e0b" radius={[3,3,0,0]} stackId="a" animationDuration={1400} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             )}
 
-            {/* ✅ FIX 4: RadarChart hanya render jika radarData valid.
-                data prop = radarData langsung (sudah format benar), tidak ada transform di JSX. */}
             {radarData.length >= 3 && top5.length >= 3 && (
               <div className="card animate-fadein" style={{ animationDelay: '0.25s' }}>
                 <div className="card-head">
@@ -314,50 +509,155 @@ export default function Leaderboard({ kecamatanList }) {
             </div>
           </div>
 
-          {/* Tabel ranking lengkap */}
+          {/* ═══════════════════════════════════════════════════
+              RANKING LENGKAP — dengan search bar + paginasi
+          ═══════════════════════════════════════════════════ */}
           <div className="card animate-fadein" style={{ animationDelay: '0.4s' }}>
             <div className="card-head">
               <div className="card-title-g">
                 <div className="c-icon ci-g">📋</div>
                 <div>
                   <div className="c-title">Ranking Lengkap</div>
-                  <div className="c-sub">{safeData.length} PCL aktif</div>
+                  <div className="c-sub">
+                    {rankQuery.trim()
+                      ? `${filteredData.length} dari ${safeData.length} PCL ditemukan`
+                      : `${safeData.length} PCL aktif`}
+                  </div>
                 </div>
               </div>
-              <span className="badge bp">{safeData.length} PCL</span>
+              <span className="badge bp">{filteredData.length} PCL</span>
             </div>
-            <div className="tw">
-              <table className="tbl">
-                <thead>
-                  <tr>
-                    <th>#</th><th>PCL</th><th>Kecamatan</th><th>PML</th>
-                    <th>P2 Usaha</th><th>P1 Keluarga</th><th>P3 BKU</th>
-                    <th>Bangunan</th><th>Belum</th><th>Total</th><th>Hari</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {safeData.map((r, i) => (
-                    <tr key={r._id || i} style={{ animation: `fadeInUp 0.35s ease ${Math.min(i * 25, 500)}ms both` }}>
-                      <td className="rank-num">{MEDAL[i] || `#${r.rank}`}</td>
-                      <td className="bold">{r._id}</td>
-                      <td>{r.nmkec}</td>
-                      <td style={{ color: 'var(--text3)', fontSize: 11 }}>{r.pengawas}</td>
-                      <td>{fmt(r.total_usaha)}</td>
-                      <td>{fmt(r.total_keluarga)}</td>
-                      <td>{fmt(r.total_bku)}</td>
-                      <td>{fmt(r.total_bangunan)}</td>
-                      <td>
-                        {(r.total_belum || 0) > 0
-                          ? <span className="badge br">{fmt(r.total_belum)}</span>
-                          : <span style={{ color: 'var(--text3)' }}>—</span>}
-                      </td>
-                      <td><strong style={{ color: 'var(--p3)' }}>{fmt(r.total_terdata)}</strong></td>
-                      <td><span className="badge bp">{r.hari_lapor}x</span></td>
+
+            {/* ── Search bar ── */}
+            <RankSearchBar
+              value={rankQuery}
+              onChange={setRankQuery}
+              total={safeData.length}
+              filtered={filteredData.length}
+            />
+
+            {/* ── Tabel ── */}
+            {pageRows.length === 0 ? (
+              <div style={{ padding: '36px 0', textAlign: 'center' }}>
+                <div style={{ fontSize: 36, marginBottom: 10, opacity: 0.6 }}>🔍</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text2)' }}>
+                  Tidak ada PCL yang cocok
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 5 }}>
+                  Coba kata kunci lain atau hapus pencarian
+                </div>
+              </div>
+            ) : (
+              <div className="tw">
+                <table className="tbl">
+                  <thead>
+                    <tr>
+                      <th>#</th><th>PCL</th><th>Kecamatan</th><th>PML</th>
+                      <th>P2 Usaha</th><th>P1 Keluarga</th><th>P3 BKU</th>
+                      <th>Bangunan</th><th>Belum</th><th>Total</th><th>Hari</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {pageRows.map((r, i) => {
+                      /* rank asli di safeData, bukan filteredData */
+                      const globalRank = safeData.findIndex(d => d._id === r._id);
+                      return (
+                        <tr
+                          key={r._id || i}
+                          style={{ animation: `fadeInUp 0.3s ease ${Math.min(i * 30, 300)}ms both` }}
+                        >
+                          <td className="rank-num">{MEDAL[globalRank] || `#${globalRank + 1}`}</td>
+                          <td className="bold">{r._id}</td>
+                          <td>{r.nmkec}</td>
+                          <td style={{ color: 'var(--text3)', fontSize: 11 }}>{r.pengawas}</td>
+                          <td>{fmt(r.total_usaha)}</td>
+                          <td>{fmt(r.total_keluarga)}</td>
+                          <td>{fmt(r.total_bku)}</td>
+                          <td>{fmt(r.total_bangunan)}</td>
+                          <td>
+                            {(r.total_belum || 0) > 0
+                              ? <span className="badge br">{fmt(r.total_belum)}</span>
+                              : <span style={{ color: 'var(--text3)' }}>—</span>}
+                          </td>
+                          <td><strong style={{ color: 'var(--p3)' }}>{fmt(r.total_terdata)}</strong></td>
+                          <td><span className="badge bp">{r.hari_lapor}x</span></td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* ── Paginasi ── */}
+            {totalRankPages > 1 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: 14,
+                paddingTop: 14,
+                borderTop: '1px solid var(--border)',
+                gap: 8,
+                flexWrap: 'wrap',
+              }}>
+                {/* Info halaman */}
+                <span style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600 }}>
+                  Halaman{' '}
+                  <strong style={{ color: 'var(--text2)' }}>{safeRankPage}</strong>
+                  {' '}dari{' '}
+                  <strong style={{ color: 'var(--text2)' }}>{totalRankPages}</strong>
+                  {' · '}baris{' '}
+                  <strong style={{ color: 'var(--text2)' }}>
+                    {rankStart + 1}–{Math.min(rankStart + RANK_PER_PAGE, filteredData.length)}
+                  </strong>
+                  {' '}dari{' '}
+                  <strong style={{ color: 'var(--text2)' }}>{filteredData.length}</strong>
+                </span>
+
+                {/* Tombol navigasi */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <PagBtn
+                    disabled={safeRankPage === 1}
+                    onClick={() => setRankPage(1)}
+                    title="Halaman pertama"
+                  >«</PagBtn>
+
+                  <PagBtn
+                    disabled={safeRankPage === 1}
+                    onClick={() => setRankPage(p => Math.max(1, p - 1))}
+                    title="Sebelumnya"
+                  >‹</PagBtn>
+
+                  {buildPageNumbers(safeRankPage, totalRankPages).map((pg, idx) =>
+                    pg === '…' ? (
+                      <span key={`ellipsis-${idx}`} style={{
+                        width: 28, textAlign: 'center',
+                        fontSize: 12, color: 'var(--text3)',
+                      }}>…</span>
+                    ) : (
+                      <PagBtn
+                        key={pg}
+                        active={pg === safeRankPage}
+                        onClick={() => setRankPage(pg)}
+                      >{pg}</PagBtn>
+                    )
+                  )}
+
+                  <PagBtn
+                    disabled={safeRankPage === totalRankPages}
+                    onClick={() => setRankPage(p => Math.min(totalRankPages, p + 1))}
+                    title="Berikutnya"
+                  >›</PagBtn>
+
+                  <PagBtn
+                    disabled={safeRankPage === totalRankPages}
+                    onClick={() => setRankPage(totalRankPages)}
+                    title="Halaman terakhir"
+                  >»</PagBtn>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
